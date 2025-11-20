@@ -206,9 +206,9 @@ const MeetingsPage = () => {
                 </div>
 
                 {/* Floating Action Button */}
-                <button className="absolute bottom-10 right-10 flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-16 w-16 bg-purple-600 text-white shadow-lg hover:bg-purple-700 transition-colors">
-                    <span className="material-symbols-outlined text-3xl">add</span>
-                    <span className="sr-only">Start New Meeting</span>
+                <button className="absolute bottom-10 right-10 flex cursor-pointer items-center justify-center overflow-hidden rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 transition-colors ">
+                    <a className=" text-md py-2 px-4 flex items-center" href="/LiveMeeting"> Start new meeting +</a>
+                    {/* <span className="sr-only">Start New Meeting</span> */}
                 </button>
             </main>
         </div>
