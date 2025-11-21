@@ -1,230 +1,177 @@
-// import React from 'react'
-// import Navbar from '../components/Navbar'
+import React, { useState } from "react";
+import Navbar from "../components/Navbar";
+import userImage from "../assets/user_image_default.jpg";
 
-// const Profile = () => {
-//   return (
-//     <div>
-//       <Navbar/>
-//     </div>
-    
-//   )
-// }
-
-// export default Profile
-
-import React, { useState } from 'react';
-
-const ProfilePage = () => {
+const Profile = () => {
   const [profile, setProfile] = useState({
-    fullName: 'Alex Hartman',
-    email: 'alex.hartman@example.com',
+    fullName: "Alex Hartman",
+    email: "alex.hartman@example.com",
   });
+
   const [autoStart, setAutoStart] = useState(true);
-  const [lang, setLang] = useState('English (US)');
-  const [apiKey] = useState('*');
+  const [lang, setLang] = useState("English (US)");
+  const [apiKey] = useState("•••••••••••••••••••••••••••••");
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#181c22',
-      color: '#fff',
-      fontFamily: 'Inter, Arial, sans-serif',
-      padding: 0,
-      margin: 0,
-    }}>
-      <div style={{
-        maxWidth: 700,
-        margin: '0 auto',
-        padding: '50px 24px 32px 24px'
-      }}>
-        {/* Profile Section */}
-        <h2 style={{ fontWeight: 600, fontSize: 28, marginBottom: 20 }}>Profile</h2>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28 }}>
-          <img src="https://randomuser.me/api/portraits/men/75.jpg"
-               alt="Profile"
-               style={{ width: 72, height: 72, borderRadius: '50%', marginRight: 24 }} />
-          <div>
-            <div style={{ color: '#fff', fontWeight: 500, fontSize: 16 }}>Profile Picture</div>
-            <div style={{ color: '#a2a9b6', fontSize: 14 }}>Update your photo</div>
-          </div>
-          <button style={{
-            marginLeft: 30,
-            background: '#262e3e', color: '#c9d6ea', border: 'none',
-            padding: '8px 18px', borderRadius: 6, fontWeight: 500,
-            cursor: 'pointer'
-          }}>Upload</button>
-        </div>
-        <div style={{ display: 'flex', gap: 20, marginBottom: 14 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: '#a2a9b6', fontSize: 13, marginBottom: 4 }}>Full Name</div>
-            <input style={{
-              width: '100%',
-              borderRadius: 7,
-              border: 'none',
-              padding: '12px 15px',
-              background: '#212635',
-              color: '#fff',
-              fontSize: 16
-            }}
-                   value={profile.fullName}
-                   onChange={e => setProfile({ ...profile, fullName: e.target.value })}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: '#a2a9b6', fontSize: 13, marginBottom: 4 }}>Email Address</div>
-            <input style={{
-              width: '100%',
-              borderRadius: 7,
-              border: 'none',
-              padding: '12px 15px',
-              background: '#212635',
-              color: '#fff',
-              fontSize: 16
-            }}
-                   value={profile.email}
-                   type="email"
-                   onChange={e => setProfile({ ...profile, email: e.target.value })}
-            />
-          </div>
-        </div>
-        <button style={{
-          marginTop: 8,
-          background: '#25487a', color: '#fff', border: 'none',
-          padding: '10px 26px', borderRadius: 6, fontWeight: 500,
-          cursor: 'pointer', fontSize: 15
-        }}>Update Profile</button>
+    <div className="min-h-screen bg-[#0c0321] text-white pt-18">
 
-        {/* Preferences Section */}
-        <h2 style={{ fontWeight: 600, fontSize: 26, margin: '46px 0 12px 0' }}>Default Meeting Preferences</h2>
-        <div style={{
-          background: '#20232e',
-          borderRadius: 9,
-          padding: '30px 24px 24px 24px',
-          marginBottom: 20
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 22
-          }}>
+      {/* MAIN CONTENT */}
+      <main className="max-w-5xl mx-auto px-6 py-10 space-y-16">
+
+        {/* ================= PROFILE SECTION ================= */}
+        <section>
+          <h2 className="text-3xl font-semibold mb-8">My Profile</h2>
+
+          <div className="flex items-center gap-6 mb-6">
+            <img
+              src="https://randomuser.me/api/portraits/men/75.jpg"
+              alt="profile"
+              className="w-30 h-30 rounded-full"
+            />
+
             <div>
-              <div style={{ color: '#fff', fontWeight: 500 }}>Auto-start recording</div>
-              <div style={{ color: '#a2a9b6', fontSize: 13, marginTop: 2 }}>Automatically start recording when a new meeting begins.</div>
+              <p className="font-medium text-lg">Profile Picture</p>
+              <p className="text-gray-400 text-sm">Update your photo</p>
             </div>
-            <label className="switch">
+
+            <button className="ml-auto bg-[#1E293B] hover:bg-[#243044] px-4 py-2 rounded-md text-sm">
+              Upload
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-gray-400 mb-1 text-sm">Full Name</label>
               <input
-                type="checkbox"
-                checked={autoStart}
-                onChange={() => setAutoStart(v => !v)}
+                type="text"
+                value={profile.fullName}
+                onChange={(e) =>
+                  setProfile({ ...profile, fullName: e.target.value })
+                }
+                className="w-full bg-[#1F2430] rounded-md px-4 py-3 text-white border-none focus:ring-2 focus:ring-blue-500 outline-none"
               />
-              <span className="slider"></span>
-            </label>
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ color: '#a2a9b6', fontSize: 13, marginBottom: 5 }}>Default transcription language</div>
-            <select value={lang}
-                    onChange={e => setLang(e.target.value)}
-                    style={{
-                      width: 220,
-                      padding: '12px 10px',
-                      borderRadius: 7,
-                      border: 'none',
-                      background: '#212635',
-                      color: '#fff',
-                      fontSize: 16
-                    }}>
-              <option>English (US)</option>
-              <option>Spanish</option>
-              <option>French</option>
-              <option>German</option>
-            </select>
-          </div>
-          <button style={{
-            background: '#3772f2', color: '#fff', border: 'none',
-            padding: '10px 26px', borderRadius: 6, fontWeight: 500,
-            cursor: 'pointer', fontSize: 15
-          }}>Save Preferences</button>
-        </div>
+            </div>
 
-        {/* Integrations Section */}
-        <h2 style={{ fontWeight: 600, fontSize: 26, margin: '38px 0 15px 0' }}>Integrations &amp; API</h2>
-        <div style={{
-          display: 'flex', gap: 22, marginBottom: 28,
-          flexWrap: 'wrap'
-        }}>
-          <div style={{
-            background: '#232734', borderRadius: 8,
-            padding: '18px 22px', flex: 1, minWidth: 220
-          }}>
-            <div style={{ fontSize: 16, color: '#fff', fontWeight: 500 }}>Google Calendar</div>
-            <div style={{ fontSize: 14, color: '#67eab9', margin: '8px 0 8px 0' }}>Connected</div>
-            <button style={{
-              background: 'transparent', color: '#ed5c60', border: 'none',
-              fontWeight: 500, cursor: 'pointer', fontSize: 15
-            }}>Disconnect</button>
+            <div>
+              <label className="block text-gray-400 mb-1 text-sm">Email Address</label>
+              <input
+                type="email"
+                value={profile.email}
+                onChange={(e) =>
+                  setProfile({ ...profile, email: e.target.value })
+                }
+                className="w-full bg-[#1F2430] rounded-md px-4 py-3 text-white border-none focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
           </div>
-          <div style={{
-            background: '#232734', borderRadius: 8,
-            padding: '18px 22px', flex: 1, minWidth: 220
-          }}>
-            <div style={{ fontSize: 16, color: '#fff', fontWeight: 500 }}>Slack</div>
-            <div style={{ fontSize: 14, color: '#babfc7', margin: '8px 0 8px 0' }}>Not Connected</div>
-            <button style={{
-              background: '#393c44', color: '#fff', border: 'none',
-              fontWeight: 500, cursor: 'pointer', fontSize: 15, borderRadius: 5,
-              padding: '5px 18px'
-            }}>Connect</button>
-          </div>
-        </div>
-        {/* API Key Section */}
-        <div>
-          <div style={{ color: '#babfc7', fontSize: 14, marginBottom: 6 }}>
-            Use this key to integrate TalkNote with your custom applications.
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input style={{
-              flex: 1,
-              borderRadius: 7,
-              border: 'none',
-              padding: '12px 15px',
-              background: '#212635',
-              color: '#fff',
-              fontSize: 17
-            }}
-                   value={apiKey}
-                   type="text"
-                   readOnly
-            />
-            <button style={{
-              background: '#353e54',
-              color: '#fff', border: 'none', fontWeight: 500,
-              cursor: 'pointer', fontSize: 14, borderRadius: 6,
-              padding: '10px 20px'
-            }}>Regenerate</button>
-          </div>
-        </div>
-      </div>
 
-      {/* Custom toggle CSS for the switch */}
-      <style>
-        {`
-        .switch { position: relative; display: inline-block; width: 45px; height: 26px;}
-        .switch input { opacity: 0; width: 0; height: 0;}
-        .slider {
-          position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-          background-color: #40485b; transition: .4s; border-radius: 28px;
-        }
-        .switch input:checked + .slider { background-color: #3772f2;}
-        .slider:before {
-          position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
-          background-color: white; transition: .4s; border-radius: 50%;
-        }
-        .switch input:checked + .slider:before { transform: translateX(18px);}
-        `}
-      </style>
+          <button className="mt-6 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-md">
+            Update Profile
+          </button>
+        </section>
+
+        {/* ================= MEETING PREFERENCES ================= */}
+        <section>
+          <h2 className="text-3xl font-semibold mb-6">Default Meeting Preferences</h2>
+
+          <div className="bg-[#1C212D] p-6 rounded-xl space-y-8">
+            {/* Auto-start */}
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-medium">Auto-start recording</p>
+                <p className="text-gray-400 text-sm">
+                  Automatically start recording when a new meeting begins.
+                </p>
+              </div>
+
+              {/* Toggle Switch */}
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoStart}
+                  onChange={() => setAutoStart(!autoStart)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:bg-blue-600 transition"></div>
+                <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-5"></div>
+              </label>
+            </div>
+
+            {/* Language dropdown */}
+            <div>
+              <label className="block text-gray-400 mb-1 text-sm">
+                Default transcription language
+              </label>
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+                className="bg-[#1F2430] px-4 py-3 rounded-md w-60 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                <option>English (US)</option>
+                <option>Spanish</option>
+                <option>French</option>
+                <option>German</option>
+              </select>
+            </div>
+
+            <button className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-md">
+              Save Preferences
+            </button>
+          </div>
+        </section>
+
+        {/* ================= INTEGRATIONS & API ================= */}
+        <section>
+          <h2 className="text-3xl font-semibold mb-6">Integrations & API</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Google Calendar */}
+            <div className="bg-[#1C212D] p-6 rounded-lg flex justify-between  items-center">
+              <div className="">
+              <p className="text-lg font-semibold">Google Calendar</p>
+              <p className="text-green-400 text-sm mt-2">Connected</p>
+              </div>
+              <button className="mt-4 text-red-400 hover:text-red-500 font-medium">
+                Disconnect
+              </button>
+            </div>
+
+            {/* Slack */}
+            <div className="bg-[#1C212D] p-6 rounded-lg flex justify-between  items-center">
+              <div>
+              <p className="text-lg font-semibold">Slack</p>
+              <p className="text-gray-400 text-sm mt-2">Not Connected</p>
+              </div>
+              <button className="mt-4 bg-gray-700 px-4 py-2 rounded-md  hover:bg-gray-600">
+                Connect
+              </button>
+            </div>
+          </div>
+
+          {/* API Key */}
+          <div className="mt-8">
+            <p className="text-gray-400 text-sm mb-2">
+              Use this key to integrate TalkNote with your custom applications.
+            </p>
+
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={apiKey}
+                readOnly
+                className="flex-1 bg-[#1F2430] px-4 py-3 rounded-md text-lg"
+              />
+
+              <button className="bg-gray-700 px-4 py-2 rounded-md hover:bg-gray-600">
+                Regenerate
+              </button>
+            </div>
+          </div>
+        </section>
+
+      </main>
     </div>
   );
 };
 
-export default ProfilePage;
+export default Profile;

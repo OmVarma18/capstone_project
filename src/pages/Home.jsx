@@ -6,7 +6,7 @@ const Home = () => {
   console.log("Home page loaded");
 
   return (
-    <div>
+    <div className=''>
         <Hero/>
         <Features/>
     </div>

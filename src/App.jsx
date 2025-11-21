@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Meetings from "./pages/Meetings";
 import Tasks from "./pages/Tasks";
+import LiveMeeting from "./pages/LiveMeeting";
 
 const App = () => {
 console.log("App loaded");
@@ -21,7 +22,10 @@ console.log("App loaded");
         <Route path="/Home" element={<Home />} />
         <Route path="/Profile" element={<Profile />} />
         <Route path="/Meetings" element={<Meetings />} />
+        <Route path="/LiveMeeting" element={<LiveMeeting />} />
+        
         <Route path="/Tasks" element={<Tasks />} />
+
       </Routes>
     </BrowserRouter>
   );

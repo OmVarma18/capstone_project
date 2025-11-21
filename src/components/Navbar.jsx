@@ -46,6 +46,10 @@ const Navbar = () => {
             Meetings
           </NavLink>
 
+          <NavLink to="/LiveMeeting" className={navLinkClasses}>
+            Live Meeting
+          </NavLink>
+
           <NavLink to="/Tasks" className={navLinkClasses}>
             Tasks
           </NavLink>
