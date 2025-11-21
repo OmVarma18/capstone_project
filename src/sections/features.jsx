@@ -108,8 +108,8 @@ const styles = {
 const featuresData = [
     { icon: '🎤', title: 'Real-Time Transcription', description: 'Instantly transcribe your speech into text as you speak, ensuring no word is missed.' },
     { icon: '🔎', title: 'Smart Search', description: 'Quickly find any moment in your recordings or transcripts with our powerful search functionality.' },
-    { icon: '☁️', title: 'Cloud Sync', description: 'Access your notes and recordings from any device with seamless cloud synchronization.' },
-    { icon: '🔒', title: 'Secure and Private', description: 'Your data is protected with end-to-end encryption, ensuring your privacy and security.' }
+    { icon: '🧠', title: 'AI-Powered Meeting Organization', description: 'Automatically capture, transcribe, and summarize discussions. Manage agendas, track speaking time, and generate insights to keep every meeting focused and productive.' },
+{ icon: '✅', title: 'Automated Action Task Generation', description: 'Instantly convert key decisions into clear, assigned tasks with due dates. Seamlessly sync action items to your favorite project management tools for effortless follow-up and accountability.' }
 ];
 
 const Features = () => {

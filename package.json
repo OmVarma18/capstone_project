@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.56.1",
     "@fortawesome/fontawesome-free": "^7.1.0",
-    "@clerk/clerk-react": "^5.56.0",
     "@tailwindcss/vite": "^4.1.17",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
