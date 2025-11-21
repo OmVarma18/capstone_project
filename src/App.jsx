@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { SignedIn, SignedOut, SignIn, SignUp } from '@clerk/clerk-react'; // Make sure SignUp is imported
+import { SignedIn, SignedOut, SignIn, SignUp } from '@clerk/clerk-react';
 import Navbar from "./components/Navbar";
 
 // Pages (ALL start with capital letters)
@@ -10,7 +10,6 @@ import Meetings from "./pages/Meetings";
 import Tasks from "./pages/Tasks";
 import LiveMeeting from "./pages/LiveMeeting";
 
-// Custom Protected Route Component (Unchanged)
 const ProtectedRoute = ({ children }) => {
   return (
     <>
@@ -36,31 +35,32 @@ console.log("App loaded");
         <Route path="/" element={<Home />} />
         <Route path="/Home" element={<Home />} />
         
-        {/* 1. Sign-In Route Configuration */}
+        {/* 1. Sign-In Route Configuration (MODIFIED) */}
         <Route 
-          path="/sign-in" 
+          path="/sign-in/*" 
           element={
             <div className="flex justify-center items-center min-h-screen">
               <SignIn 
                 path="/sign-in" 
                 routing="path" 
-                // Set the URL to redirect to the Sign-Up page
                 signUpUrl="/sign-up" 
+                forceRedirectUrl="/Meetings" 
               />
             </div>
           } 
         />
         
-        {/* 2. Sign-Up Route Configuration */}
+        {/* 2. Sign-Up Route Configuration (MODIFIED) */}
+        {/* Changed path to include the * wildcard for any potential sign-up callbacks */}
         <Route 
-          path="/sign-up" 
+          path="/sign-up/*" 
           element={
             <div className="flex justify-center items-center min-h-screen">
               <SignUp 
                 path="/sign-up" 
                 routing="path" 
-                // Set the URL to redirect back to the Sign-In page
                 signInUrl="/sign-in" 
+                forceRedirectUrl="/Meetings"
               />
             </div>
           } 

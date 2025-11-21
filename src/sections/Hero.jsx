@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const styles = {
     heroSection: {
@@ -92,8 +93,19 @@ const Hero = () => {
                     TalkNote captures your spoken ideas, lectures, and meetings, and automatically organizes them into clear, actionable text.
                 </p>
                 <div style={styles.ctaButtons}>
-                    <button style={{...styles.btn, ...styles.primaryBtn}}>Start for Free</button>
-                    <button style={{...styles.btn, ...styles.secondaryBtn}}>Book a Demo</button>
+                    {/* Button 1: Start for Free */}
+                    <Link to="/Meetings" style={{ textDecoration: 'none' }}>
+                      <button style={{...styles.btn, ...styles.primaryBtn}}>
+                        Start for Free
+                      </button>
+                    </Link>
+                    
+                    {/* Button 2: Book a Demo */}
+                    <Link to="/Meetings" style={{ textDecoration: 'none' }}>
+                      <button style={{...styles.btn, ...styles.secondaryBtn}}>
+                        Book a Demo
+                      </button>
+                    </Link>
                 </div>
             </div>
         </div>
