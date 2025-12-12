@@ -148,7 +148,7 @@ const Features = () => {
                 <a href="#" style={styles.footerLink}>Privacy Policy</a>
             </div>
             <div style={styles.copyright}>
-                ©2024 TalkNote. All rights reserved.
+                ©2025 TalkNote. All rights reserved.
             </div>
         </div>
     );
