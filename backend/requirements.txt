@@ -1,0 +1,12 @@
+fastapi==0.109.2
+uvicorn==0.27.1
+python-multipart==0.0.9
+torch>=2.0.0
+torchaudio>=2.0.0
+openai-whisper
+speechbrain>=1.0.0
+librosa
+scikit-learn
+numpy
+python-jose[cryptography]
+requests
