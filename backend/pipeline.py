@@ -4,7 +4,7 @@ import logging
 import numpy as np
 import librosa
 import whisper
-from speechbrain.inference import EncoderClassifier
+from speechbrain.inference.speaker import EncoderClassifier
 from sklearn.cluster import SpectralClustering
 from sklearn.metrics import silhouette_score
 from collections import defaultdict

@@ -8,6 +8,6 @@ openai-whisper
 speechbrain==0.5.16
 librosa
 scikit-learn
-numpy
+numpy<2.0.0
 python-jose[cryptography]
 requests
