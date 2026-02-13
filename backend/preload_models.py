@@ -1,5 +1,5 @@
 import whisper
-from speechbrain.inference.speaker import EncoderClassifier
+from speechbrain.pretrained import EncoderClassifier
 
 def download_models():
     print("Downloading Whisper 'base' model...")
