@@ -35,5 +35,5 @@ jobs:
           git add .
           git commit -m "Deploy from GitHub Actions: ${GITHUB_SHA::7}" || echo "No changes to commit"
           
-          # Force Push
-          git push https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME main --force
+          # Force push to main
+          git push --force https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME main
