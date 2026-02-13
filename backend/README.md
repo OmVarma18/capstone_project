@@ -11,3 +11,5 @@ app_port: 7860
 # TalkNote Backend
 
 This is the backend for the TalkNote application, running on FastAPI with a custom Docker environment for audio processing.
+
+Last Updated: 2026-02-13
