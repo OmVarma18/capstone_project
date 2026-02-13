@@ -11,3 +11,4 @@ scikit-learn
 numpy<2.0.0
 python-jose[cryptography]
 requests
+huggingface-hub==0.19.4
