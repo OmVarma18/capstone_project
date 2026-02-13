@@ -1,12 +1,13 @@
 ---
-title: TalkNote
+title: TalkNote Backend
 emoji: 🎙️
-colorFrom: purple
+colorFrom: blue
 colorTo: indigo
-sdk: gradio
-app_file: app.py
+sdk: docker
 pinned: false
+app_port: 7860
 ---
 
-# TalkNote Backend API
-FastAPI backend for meeting transcription and analysis.
+# TalkNote Backend
+
+This is the backend for the TalkNote application, running on FastAPI with a custom Docker environment for audio processing.
