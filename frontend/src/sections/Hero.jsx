@@ -94,17 +94,17 @@ const Hero = () => {
                 </p>
                 <div style={styles.ctaButtons}>
                     {/* Button 1: Start for Free */}
-                    <Link to="/Meetings" style={{ textDecoration: 'none' }}>
-                      <button style={{...styles.btn, ...styles.primaryBtn}}>
-                        Start for Free
-                      </button>
+                    <Link to="/LiveMeeting" style={{ textDecoration: 'none' }}>
+                        <button style={{ ...styles.btn, ...styles.primaryBtn }}>
+                            Start for Free
+                        </button>
                     </Link>
-                    
+
                     {/* Button 2: Book a Demo */}
-                    <Link to="/Meetings" style={{ textDecoration: 'none' }}>
-                      <button style={{...styles.btn, ...styles.secondaryBtn}}>
-                        Book a Demo
-                      </button>
+                    <Link to="/LiveMeeting" style={{ textDecoration: 'none' }}>
+                        <button style={{ ...styles.btn, ...styles.secondaryBtn }}>
+                            Book a Demo
+                        </button>
                     </Link>
                 </div>
             </div>

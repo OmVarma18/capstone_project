@@ -1,5 +1,6 @@
 import os
 import torch
+import logging
 import numpy as np
 import librosa
 import whisper
@@ -8,22 +9,25 @@ from sklearn.cluster import SpectralClustering
 from sklearn.metrics import silhouette_score
 from collections import defaultdict
 
+# Configure Logging
+logger = logging.getLogger(__name__)
+
 SAMPLE_RATE = 16000
 DEVICE = "cpu" # Force CPU for compatibility, change to "cuda" if GPU is available
 
 class TalkNotePipeline:
     def __init__(self, session_id: str = "temp_session"):
-        print(f"[LOG] Initializing TalkNotePipeline for session {session_id}")
+        logger.info(f"Initializing TalkNotePipeline for session {session_id}")
         self.session_id = session_id
         self.sample_rate = SAMPLE_RATE
         
         # Load models (Lazily or Global for performance in prod)
         # For this implementation, we load them here. 
         # In production, move these outside the class to load only once.
-        print("[LOG] Loading Whisper...")
+        logger.info("Loading Whisper...")
         self.asr_model = whisper.load_model("base", device=DEVICE)
         
-        print("[LOG] Loading Speaker Encoder...")
+        logger.info("Loading Speaker Encoder...")
         self.embedder = EncoderClassifier.from_hparams(
             source="speechbrain/spkrec-ecapa-voxceleb",
             run_opts={"device": DEVICE}
@@ -39,27 +43,27 @@ class TalkNotePipeline:
         
     def process_file(self, file_path: str):
         """Main entry point to process a full audio file."""
-        print(f"[LOG] Processing file: {file_path}")
+        logger.info(f"Processing file: {file_path}")
         
         # 1. Load Audio
         audio, _ = librosa.load(file_path, sr=self.sample_rate, mono=True)
         self.audio = audio
         
         # 2. Run ASR
-        print("[LOG] Running ASR...")
+        logger.info("Running ASR...")
         result = self.asr_model.transcribe(self.audio, verbose=False)
         self.asr_segments = result.get("segments", [])
         
         # 3. Extract Embeddings (simplified block processing)
-        print("[LOG] Extracting Embeddings...")
+        logger.info("Extracting Embeddings...")
         self._extract_embeddings()
         
         # 4. Diarization (Clustering)
-        print("[LOG] Clustering Speakers...")
+        logger.info("Clustering Speakers...")
         self._cluster_speakers()
         
         # 5. Align & Merge
-        print("[LOG] Aligning & Merging...")
+        logger.info("Aligning & Merging...")
         self._align_segments()
         self._merge_segments()
         
@@ -98,7 +102,7 @@ class TalkNotePipeline:
         
         # Estimate number of speakers (simplified)
         n_speakers = self._estimate_num_speakers(X)
-        print(f"[LOG] Estimated speakers: {n_speakers}")
+        logger.info(f"Estimated speakers: {n_speakers}")
         
         clusterer = SpectralClustering(
             n_clusters=n_speakers,

@@ -7,6 +7,7 @@ const LiveMeeting = () => {
   const { user } = useUser();
 
   const [transcript, setTranscript] = useState([]);
+  const [summary, setSummary] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
@@ -24,7 +25,24 @@ const LiveMeeting = () => {
 
       // Transform backend result to match UI structure if needed
       // Backend returns { transcript: [{start, end, text, speaker}], speakers: [] }
-      setTranscript(result.transcript || []);
+      const finalTranscript = result.transcript || [];
+      const finalSummary = result.summary || "";
+      setTranscript(finalTranscript);
+      setSummary(finalSummary);
+
+      // PERSISTENCE: Save to localStorage
+      const newMeeting = {
+        id: Date.now(),
+        title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
+        date: new Date().toLocaleDateString(),
+        transcript: finalTranscript,
+        summary: finalSummary,
+        tasks: result.tasks || [], // AI generated tasks from backend
+      };
+
+      const existing = JSON.parse(localStorage.getItem('talknote_meetings') || '[]');
+      localStorage.setItem('talknote_meetings', JSON.stringify([newMeeting, ...existing]));
+
     } catch (err) {
       console.error(err);
       setUploadError("Failed to process audio. Please try again.");
@@ -33,8 +51,17 @@ const LiveMeeting = () => {
     }
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current.click();
+  const deleteMeeting = (id, e) => {
+    e.stopPropagation(); // Prevent selecting the meeting when clicking delete
+    if (window.confirm("Are you sure you want to delete this session?")) {
+      const existing = JSON.parse(localStorage.getItem('talknote_meetings') || '[]');
+      const updated = existing.filter(m => m.id !== id);
+      localStorage.setItem('talknote_meetings', JSON.stringify(updated));
+
+      // Clear current view if the deleted meeting was active
+      setTranscript([]);
+      setSummary("");
+    }
   };
 
   return (
@@ -79,11 +106,40 @@ const LiveMeeting = () => {
 
       {/* Main Content */}
       <main className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar: Instructions/Status */}
-        <aside className="w-64 border-r border-[#1e0d3f] p-6 hidden md:flex flex-col">
-          <div className="flex flex-col gap-6">
+        {/* Left Sidebar: Instructions & Past Sessions */}
+        <aside className="w-72 border-r border-[#1e0d3f] p-6 hidden md:flex flex-col overflow-y-auto">
+          <div className="flex flex-col gap-8">
             <div className="flex flex-col">
-              <h3 className="text-base font-semibold mb-1">Upload Session</h3>
+              <h3 className="text-base font-semibold mb-1 text-purple-400">Past Sessions</h3>
+              <div className="space-y-2 mt-4">
+                {JSON.parse(localStorage.getItem('talknote_meetings') || '[]').map((m) => (
+                  <div key={m.id} className="group relative">
+                    <button
+                      onClick={() => {
+                        setTranscript(m.transcript);
+                        setSummary(m.summary || "");
+                      }}
+                      className="w-full text-left p-3 pr-10 rounded-lg bg-[#1a0938] border border-[#2a1255] hover:border-purple-500 transition-colors text-sm truncate"
+                    >
+                      {m.title}
+                    </button>
+                    <button
+                      onClick={(e) => deleteMeeting(m.id, e)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete Session"
+                    >
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                  </div>
+                ))}
+                {JSON.parse(localStorage.getItem('talknote_meetings') || '[]').length === 0 && (
+                  <p className="text-xs text-gray-500">No sessions yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <h3 className="text-base font-semibold mb-1">New Upload</h3>
               <p className="text-sm text-gray-400">
                 {transcript.length > 0 ? `${transcript.length} Segments` : "No data yet"}
               </p>
@@ -95,10 +151,11 @@ const LiveMeeting = () => {
               </div>
             )}
 
-            <div className="text-sm text-gray-400">
-              <p>1. Click "Upload Audio"</p>
-              <p>2. Select a meeting recording (.wav, .mp3)</p>
-              <p>3. Wait for AI analysis</p>
+            <div className="text-sm text-gray-400 space-y-2 border-t border-[#1e0d3f] pt-6">
+              <p className="font-semibold text-gray-300">Quick Guide:</p>
+              <p>1. Upload a meeting audio</p>
+              <p>2. Wait for AI analysis</p>
+              <p>3. View tasks in the "Tasks" page</p>
             </div>
           </div>
         </aside>
@@ -106,6 +163,19 @@ const LiveMeeting = () => {
         {/* Center: Live Transcript */}
         <div className="flex-1 flex flex-col bg-[#0c0321]">
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+            {summary && (
+              <div className="bg-purple-900/10 border border-purple-500/30 p-6 rounded-2xl mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
+                <div className="flex items-center gap-2 mb-3 text-purple-400">
+                  <span className="material-symbols-outlined text-xl">auto_awesome</span>
+                  <h3 className="font-bold uppercase tracking-wider text-xs">AI Summary</h3>
+                </div>
+                <p className="text-gray-300 leading-relaxed text-lg italic font-medium">
+                  "{summary}"
+                </p>
+              </div>
+            )}
+
 
             {transcript.length === 0 && !isProcessing && (
               <div className="flex flex-col items-center justify-center h-full text-gray-500">

@@ -1,23 +1,28 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useUser, useClerk } from "@clerk/clerk-react";
 
 // Your images
-import user from "../assets/user_image_default.jpg";
 import logo from "../assets/talknote_logo.png";
 
 const Navbar = () => {
   const [openMenu, setOpenMenu] = useState(false);       // Mobile nav
   const [openProfile, setOpenProfile] = useState(false); // Profile dropdown
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const navigate = useNavigate();
 
-    console.log("Navbar loaded");
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
 
   // Active link styling
   const navLinkClasses = ({ isActive }) =>
-    `transition text-sm md:text-base ${
-      isActive
-        ? "text-blue-400 font-medium border-b-2 border-blue-400 pb-1"
-        : "text-gray-300 hover:text-blue-300"
+    `transition text-sm md:text-base ${isActive
+      ? "text-blue-400 font-medium border-b-2 border-blue-400 pb-1"
+      : "text-gray-300 hover:text-blue-300"
     }`;
 
   return (
@@ -42,9 +47,7 @@ const Navbar = () => {
             Home
           </NavLink>
 
-          <NavLink to="/Meetings" className={navLinkClasses}>
-            Meetings
-          </NavLink>
+
 
           <NavLink to="/LiveMeeting" className={navLinkClasses}>
             Live Meeting
@@ -72,9 +75,13 @@ const Navbar = () => {
           <div className="relative">
             <div
               onClick={() => setOpenProfile(!openProfile)}
-              className="w-10 h-10 cursor-pointer border-2 border-gray-400 hover:border-blue-400 rounded-full overflow-hidden"
+              className="w-10 h-10 cursor-pointer border-2 border-gray-400 hover:border-blue-400 rounded-full overflow-hidden flex items-center justify-center bg-gray-700"
             >
-              <img src={user} alt="user avatar" className="w-full h-full object-cover" />
+              {user?.imageUrl ? (
+                <img src={user.imageUrl} alt="user avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-sm font-bold">{user?.firstName?.charAt(0) || "U"}</div>
+              )}
             </div>
 
             {openProfile && (
@@ -82,10 +89,14 @@ const Navbar = () => {
                 <NavLink
                   to="/profile"
                   className="block px-3 py-2 rounded hover:bg-blue-600"
+                  onClick={() => setOpenProfile(false)}
                 >
                   My Profile
                 </NavLink>
-                <button className="w-full text-left px-3 py-2 rounded hover:bg-red-600">
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-red-600"
+                >
                   Logout
                 </button>
               </div>
@@ -113,13 +124,7 @@ const Navbar = () => {
             Home
           </NavLink>
 
-          <NavLink
-            to="/meetings"
-            className="px-3 py-2 rounded hover:bg-blue-600"
-            onClick={() => setOpenMenu(false)}
-          >
-            Meetings
-          </NavLink>
+
 
           <NavLink
             to="/tasks"

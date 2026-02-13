@@ -60,8 +60,12 @@ auth_handler = ClerkAuth()
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    # In development, we might skip full verification if env var is set
-    if os.getenv("SKIP_AUTH") == "true":
+    
+    # Bypass for local mock testing
+    is_mock = os.getenv("USE_MOCK_AI", "false").lower() == "true"
+    skip_auth = os.getenv("SKIP_AUTH", "false").lower() == "true"
+    
+    if is_mock or skip_auth:
         return {"sub": "dev_user"}
         
     return auth_handler.verify_token(token)

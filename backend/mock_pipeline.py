@@ -1,13 +1,17 @@
 import time
+import logging
+
+# Configure Logging
+logger = logging.getLogger(__name__)
 
 class TalkNotePipeline:
     def __init__(self, session_id: str = "temp_session"):
-        print(f"[MOCK] Initializing Mock Pipeline for session {session_id}")
+        logger.info(f"Initializing Mock Pipeline for session {session_id}")
         self.session_id = session_id
 
     def process_file(self, file_path: str):
         """Mock processing that returns fake data."""
-        print(f"[MOCK] Processing file: {file_path}")
+        logger.info(f"Processing file: {file_path}")
         time.sleep(2) # Simulate processing delay
         
         return {

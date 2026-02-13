@@ -1,16 +1,15 @@
 import React, { useState } from "react";
-import Navbar from "../components/Navbar";
-import userImage from "../assets/user_image_default.jpg";
+import { useUser } from "@clerk/clerk-react";
 
 const Profile = () => {
-  const [profile, setProfile] = useState({
-    fullName: "Alex Hartman",
-    email: "alex.hartman@example.com",
-  });
-
+  const { user } = useUser();
   const [autoStart, setAutoStart] = useState(true);
   const [lang, setLang] = useState("English (US)");
   const [apiKey] = useState("•••••••••••••••••••••••••••••");
+
+  // Local state for form (initialized with real data)
+  const [fullName, setFullName] = useState(user?.fullName || "");
+  const [email, setEmail] = useState(user?.primaryEmailAddress?.emailAddress || "");
 
   return (
     <div className="min-h-screen bg-[#0c0321] text-white pt-18">
@@ -24,9 +23,9 @@ const Profile = () => {
 
           <div className="flex items-center gap-6 mb-6">
             <img
-              src="https://randomuser.me/api/portraits/men/75.jpg"
+              src={user?.imageUrl || "https://randomuser.me/api/portraits/men/75.jpg"}
               alt="profile"
-              className="w-30 h-30 rounded-full"
+              className="w-24 h-24 rounded-full object-cover border-2 border-blue-500"
             />
 
             <div>
@@ -44,10 +43,8 @@ const Profile = () => {
               <label className="block text-gray-400 mb-1 text-sm">Full Name</label>
               <input
                 type="text"
-                value={profile.fullName}
-                onChange={(e) =>
-                  setProfile({ ...profile, fullName: e.target.value })
-                }
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 className="w-full bg-[#1F2430] rounded-md px-4 py-3 text-white border-none focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
@@ -56,11 +53,9 @@ const Profile = () => {
               <label className="block text-gray-400 mb-1 text-sm">Email Address</label>
               <input
                 type="email"
-                value={profile.email}
-                onChange={(e) =>
-                  setProfile({ ...profile, email: e.target.value })
-                }
-                className="w-full bg-[#1F2430] rounded-md px-4 py-3 text-white border-none focus:ring-2 focus:ring-blue-500 outline-none"
+                readOnly
+                value={email}
+                className="w-full bg-[#1F2430] rounded-md px-4 py-3 text-white border-none focus:ring-2 focus:ring-blue-500 outline-none opacity-50 cursor-not-allowed"
               />
             </div>
           </div>
@@ -128,8 +123,8 @@ const Profile = () => {
             {/* Google Calendar */}
             <div className="bg-[#1C212D] p-6 rounded-lg flex justify-between  items-center">
               <div className="">
-              <p className="text-lg font-semibold">Google Calendar</p>
-              <p className="text-green-400 text-sm mt-2">Connected</p>
+                <p className="text-lg font-semibold">Google Calendar</p>
+                <p className="text-green-400 text-sm mt-2">Connected</p>
               </div>
               <button className="mt-4 text-red-400 hover:text-red-500 font-medium">
                 Disconnect
@@ -139,8 +134,8 @@ const Profile = () => {
             {/* Slack */}
             <div className="bg-[#1C212D] p-6 rounded-lg flex justify-between  items-center">
               <div>
-              <p className="text-lg font-semibold">Slack</p>
-              <p className="text-gray-400 text-sm mt-2">Not Connected</p>
+                <p className="text-lg font-semibold">Slack</p>
+                <p className="text-gray-400 text-sm mt-2">Not Connected</p>
               </div>
               <button className="mt-4 bg-gray-700 px-4 py-2 rounded-md  hover:bg-gray-600">
                 Connect
