@@ -82,6 +82,13 @@ def process_files():
             summary = simple_summarize(result['transcript'])
             tasks = [] # We could add keyword extraction here later
             
+            # --- DEBUG LOGGING ---
+            logger.info("============== TRANSCRIPT RESULT ==============")
+            logger.info(json.dumps(result['transcript'], indent=2))
+            logger.info("============== SUMMARY RESULT =================")
+            logger.info(summary)
+            logger.info("===============================================")
+            
             # 3. Save to Database
             # Filename format from upload.js: userId___timestamp_filename.ext
             user_id_parts = filename.split('___')
