@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Tasks from "./pages/Tasks";
 import LiveMeeting from "./pages/LiveMeeting";
+import Meetings from "./pages/Meetings";
 
 const ProtectedRoute = ({ children }) => {
   return (
@@ -69,6 +70,7 @@ const App = () => {
         <Route path="/Profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
         <Route path="/LiveMeeting" element={<ProtectedRoute><LiveMeeting /></ProtectedRoute>} />
+        <Route path="/Meetings" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
         <Route path="/Tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
 
       </Routes>
