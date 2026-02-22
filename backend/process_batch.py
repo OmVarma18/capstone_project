@@ -67,8 +67,8 @@ def process_files():
     # Initialize Pipeline (Model loading might take time)
     pipeline = TalkNotePipeline()
 
-    conn = get_db_connection()
-    cur = conn.cursor()
+    # conn = get_db_connection()
+    # cur = conn.cursor()
 
     for file_path in audio_files:
         try:
@@ -89,24 +89,22 @@ def process_files():
             logger.info(summary)
             logger.info("===============================================")
             
-            # 3. Save to Database
+            # 3. Save to Database (DISABLED FOR NOW FOR TESTING)
             # Filename format from upload.js: userId___timestamp_filename.ext
             user_id_parts = filename.split('___')
             user_id = user_id_parts[0] if len(user_id_parts) > 1 else "unknown_user"
-            
-            # Use original filename for the DB entry
             original_title = user_id_parts[1].split('_', 1)[1] if len(user_id_parts) > 1 else filename
 
-            cur.execute("""
-                INSERT INTO sessions (user_id, title, summary, transcript, tasks)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (
-                user_id,
-                original_title,
-                summary,
-                Json(result['transcript']),
-                Json(tasks)
-            ))
+            # cur.execute("""
+            #     INSERT INTO sessions (user_id, title, summary, transcript, tasks)
+            #     VALUES (%s, %s, %s, %s, %s)
+            # """, (
+            #     user_id,
+            #     original_title,
+            #     summary,
+            #     Json(result['transcript']),
+            #     Json(tasks)
+            # ))
             
             # 4. Clean up original file
             os.remove(file_path)
@@ -115,9 +113,9 @@ def process_files():
         except Exception as e:
             logger.error(f"Error processing {file_path}: {e}")
 
-    conn.commit()
-    cur.close()
-    conn.close()
+    # conn.commit()
+    # cur.close()
+    # conn.close()
 
 if __name__ == "__main__":
     # Ensure upload dir exists
