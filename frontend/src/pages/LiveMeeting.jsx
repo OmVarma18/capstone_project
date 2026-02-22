@@ -12,6 +12,10 @@ const LiveMeeting = () => {
   const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
+  const triggerFileInput = () => {
+    fileInputRef.current.click();
+  };
+
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -21,31 +25,19 @@ const LiveMeeting = () => {
 
     try {
       const token = await getToken();
-      const result = await api.uploadAudio(file, token); // Assumes api.uploadAudio exists
+      // Pass user.id for database routing
+      const result = await api.uploadAudio(file, token, user.id);
 
-      // Transform backend result to match UI structure if needed
-      // Backend returns { transcript: [{start, end, text, speaker}], speakers: [] }
-      const finalTranscript = result.transcript || [];
-      const finalSummary = result.summary || "";
-      setTranscript(finalTranscript);
-      setSummary(finalSummary);
-
-      // PERSISTENCE: Save to localStorage
-      const newMeeting = {
-        id: Date.now(),
-        title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
-        date: new Date().toLocaleDateString(),
-        transcript: finalTranscript,
-        summary: finalSummary,
-        tasks: result.tasks || [], // AI generated tasks from backend
-      };
-
-      const existing = JSON.parse(localStorage.getItem('talknote_meetings') || '[]');
-      localStorage.setItem('talknote_meetings', JSON.stringify([newMeeting, ...existing]));
+      // Instead of getting the transcript immediately, we get a success message
+      // that the job was queued in GitHub Actions.
+      if (result.status === 'processing') {
+        setSummary("🎉 Audio uploaded successfully! The AI is processing it in the background (GitHub Actions). This usually takes 2-3 minutes. You can safely leave this page and check the 'Meetings' tab later.");
+        setTranscript([]);
+      }
 
     } catch (err) {
       console.error(err);
-      setUploadError("Failed to process audio. Please try again.");
+      setUploadError("Failed to upload audio. Please try again.");
     } finally {
       setIsProcessing(false);
     }

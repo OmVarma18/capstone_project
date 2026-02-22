@@ -1,47 +1,55 @@
 import React, { useState, useEffect } from "react";
+import { useAuth, useUser } from "@clerk/clerk-react";
+import { api } from "../services/api";
 
 const Tasks = () => {
+  const { getToken } = useAuth();
+  const { user } = useUser();
+
   const [tasks, setTasks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load tasks from all meetings in localStorage
-    const meetings = JSON.parse(localStorage.getItem('talknote_meetings') || '[]');
-    const allTasks = meetings.flatMap(m =>
-      (m.tasks || []).map(t => ({
-        ...t,
-        meetingTitle: m.title,
-        meetingId: m.id
-      }))
-    );
-    setTasks(allTasks);
-  }, []);
+    const fetchTasks = async () => {
+      if (!user) return;
+
+      setIsLoading(true);
+      try {
+        const token = await getToken();
+        // Fetch all sessions (transcripts + tasks) for this user from DB
+        const data = await api.fetchSessions(token, user.id);
+
+        // Extract tasks from all sessions
+        const allTasks = data.flatMap(session =>
+          (session.tasks || []).map(t => ({
+            ...t,
+            meetingTitle: session.title.replace('___', ' - ').replace(/^[a-zA-Z0-9_]+ - \d+_/, ''),
+            meetingId: session.id
+          }))
+        );
+
+        setTasks(allTasks);
+      } catch (err) {
+        console.error("Failed to load tasks", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [user, getToken]);
 
   const toggleTask = (meetingId, taskTitle) => {
-    const meetings = JSON.parse(localStorage.getItem('talknote_meetings') || '[]');
-    const updated = meetings.map(m => {
-      if (m.id === meetingId) {
-        return {
-          ...m,
-          tasks: m.tasks.map(t =>
-            t.title === taskTitle ? { ...t, completed: !t.completed } : t
-          )
-        };
-      }
-      return m;
-    });
-    localStorage.setItem('talknote_meetings', JSON.stringify(updated));
-
-    // Refresh local state
-    const allTasks = updated.flatMap(m =>
-      (m.tasks || []).map(t => ({
-        ...t,
-        meetingTitle: m.title,
-        meetingId: m.id
-      }))
+    // For MVP MVP, we just toggle locally since we don't have a specific
+    // "update task" endpoint yet in the serverless backend.
+    setTasks(prevTasks =>
+      prevTasks.map(t =>
+        (t.meetingId === meetingId && t.title === taskTitle)
+          ? { ...t, completed: !t.completed, status: !t.completed ? 'Completed' : 'Pending' }
+          : t
+      )
     );
-    setTasks(allTasks);
   };
-
   return (
     <div className="min-h-screen bg-[#0c0321] text-white font-display pt-18">
       <main className="flex h-full grow flex-col">

@@ -1,6 +1,4 @@
-fastapi==0.109.2
-uvicorn==0.27.1
-python-multipart==0.0.9
+# Dependencies for TalkNote batch processing
 # Exact versions required for speechbrain compatibility
 torch==2.0.1
 torchaudio==2.0.2
@@ -9,6 +7,7 @@ speechbrain==0.5.16
 librosa
 scikit-learn
 numpy<2.0.0
-python-jose[cryptography]
-requests
+psycopg2-binary
+python-dotenv
 huggingface-hub==0.19.4
+requests
