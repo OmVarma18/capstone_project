@@ -35,6 +35,7 @@ jobs:
           python backend/process_batch.py
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           
       - name: 🧹 Clean up and Commit Deletions
         run: |

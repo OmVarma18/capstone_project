@@ -4,6 +4,7 @@ import json
 import logging
 import psycopg2
 from psycopg2.extras import Json
+import google.generativeai as genai
 from pipeline import TalkNotePipeline
 from dotenv import load_dotenv
 
@@ -17,6 +18,10 @@ logger = logging.getLogger(__name__)
 # Constants
 UPLOAD_DIR = "uploads"
 DATABASE_URL = os.environ.get("DATABASE_URL")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
@@ -38,14 +43,50 @@ def create_table_if_not_exists():
     cur.close()
     conn.close()
 
-def simple_summarize(transcript):
-    """Placeholder for a better summarization model."""
+def generate_insights(transcript):
+    """Uses Gemini to generate a summary and a list of actionable tasks from the transcript."""
     if not transcript:
-        return "No content to summarize."
+        return {"summary": "No content to summarize.", "tasks": []}
     
-    # Just take the first few lines as a 'proxy' summary for now
-    text_only = " ".join([seg['text'] for seg in transcript[:5]])
-    return text_only[:200] + "..."
+    text_only = " ".join([seg['text'] for seg in transcript])
+    
+    if not GEMINI_API_KEY:
+        logger.warning("GEMINI_API_KEY not found. Using simple fallback summary.")
+        return {
+            "summary": text_only[:200] + "...",
+            "tasks": []
+        }
+
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
+        
+        prompt = f"""
+        You are an intelligent meeting assistant. Analyze the following meeting transcript.
+        Return a beautiful, concise summary of the conversation, and extract an array of actionable tasks.
+        
+        Please format strictly as a JSON object matching this schema:
+        {{
+            "summary": "a couple of sentences summarizing the main points",
+            "tasks": [
+                {{"title": "The actionable task based on the transcript", "status": "pending"}}
+            ]
+        }}
+        
+        Transcript: 
+        {text_only}
+        """
+        
+        response = model.generate_content(prompt)
+        # Parse the JSON response
+        data = json.loads(response.text)
+        return {"summary": data.get("summary", ""), "tasks": data.get("tasks", [])}
+        
+    except Exception as e:
+        logger.error(f"Error calling Gemini AI: {e}")
+        return {
+            "summary": text_only[:200] + "... (AI summary failed)",
+            "tasks": []
+        }
 
 def process_files():
     # if not DATABASE_URL:
@@ -79,14 +120,15 @@ def process_files():
             result = pipeline.process_file(file_path)
             
             # 2. Heuristic Summary & Tasks (Mocking for now)
-            summary = simple_summarize(result['transcript'])
-            tasks = [] # We could add keyword extraction here later
+            insights = generate_insights(result['transcript'])
+            summary = insights['summary']
+            tasks = insights['tasks']
             
             # --- DEBUG LOGGING ---
             logger.info("============== TRANSCRIPT RESULT ==============")
             logger.info(json.dumps(result['transcript'], indent=2))
-            logger.info("============== SUMMARY RESULT =================")
-            logger.info(summary)
+            logger.info("============== INSIGHTS RESULT =================")
+            logger.info(json.dumps(insights, indent=2))
             logger.info("===============================================")
             
             # 3. Save to Database
