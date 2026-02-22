@@ -4,7 +4,7 @@ import json
 import logging
 import psycopg2
 from psycopg2.extras import Json
-import google.generativeai as genai
+from google import genai
 from pipeline import TalkNotePipeline
 from dotenv import load_dotenv
 
@@ -21,7 +21,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
@@ -58,8 +58,6 @@ def generate_insights(transcript):
         }
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
-        
         prompt = f"""
         You are an intelligent meeting assistant. Analyze the following meeting transcript.
         Return a beautiful, concise summary of the conversation, and extract an array of actionable tasks.
@@ -76,7 +74,10 @@ def generate_insights(transcript):
         {text_only}
         """
         
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
         
         # Safely clean up Gemini's response string before parsing
         raw_text = response.text.strip()
