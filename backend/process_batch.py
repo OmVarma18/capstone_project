@@ -77,12 +77,26 @@ def generate_insights(transcript):
         """
         
         response = model.generate_content(prompt)
+        
+        # Safely clean up Gemini's response string before parsing
+        raw_text = response.text.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:-3].strip()
+        elif raw_text.startswith("```"):
+            raw_text = raw_text[3:-3].strip()
+            
         # Parse the JSON response
-        data = json.loads(response.text)
+        data = json.loads(raw_text)
         return {"summary": data.get("summary", ""), "tasks": data.get("tasks", [])}
         
     except Exception as e:
         logger.error(f"Error calling Gemini AI: {e}")
+        # Try to log the raw text if available for debugging
+        try:
+            logger.error(f"Raw Gemini Output was: {response.text}")
+        except:
+            pass
+        
         return {
             "summary": text_only[:200] + "... (AI summary failed)",
             "tasks": []
