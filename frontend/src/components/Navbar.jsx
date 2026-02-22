@@ -53,6 +53,10 @@ const Navbar = () => {
             Live Meeting
           </NavLink>
 
+          <NavLink to="/Meetings" className={navLinkClasses}>
+            Meetings
+          </NavLink>
+
           <NavLink to="/Tasks" className={navLinkClasses}>
             Tasks
           </NavLink>
@@ -124,10 +128,16 @@ const Navbar = () => {
             Home
           </NavLink>
 
-
+          <NavLink
+            to="/Meetings"
+            className="px-3 py-2 rounded hover:bg-blue-600"
+            onClick={() => setOpenMenu(false)}
+          >
+            Meetings
+          </NavLink>
 
           <NavLink
-            to="/tasks"
+            to="/Tasks"
             className="px-3 py-2 rounded hover:bg-blue-600"
             onClick={() => setOpenMenu(false)}
           >
