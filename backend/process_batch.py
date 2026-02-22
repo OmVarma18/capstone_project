@@ -48,11 +48,11 @@ def simple_summarize(transcript):
     return text_only[:200] + "..."
 
 def process_files():
-    if not DATABASE_URL:
-        logger.error("DATABASE_URL not found in environment variables.")
-        return
-
-    create_table_if_not_exists()
+    # if not DATABASE_URL:
+    #     logger.error("DATABASE_URL not found in environment variables.")
+    #     return
+    
+    # create_table_if_not_exists()
     
     audio_files = []
     for ext in ['*.mp3', '*.wav', '*.m4a', '*.ogg']:
