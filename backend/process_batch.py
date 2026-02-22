@@ -96,7 +96,7 @@ def process_files():
     # create_table_if_not_exists()
     
     audio_files = []
-    for ext in ['*.mp3', '*.wav', '*.m4a', '*.ogg', '*.m4p']:
+    for ext in ['*.mp3', '*.wav', '*.m4a', '*.ogg', '*.m4p', '*.mp4']:
         audio_files.extend(glob.glob(os.path.join(UPLOAD_DIR, ext)))
 
     if not audio_files:
