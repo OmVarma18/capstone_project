@@ -45,6 +45,14 @@ class TalkNotePipeline:
         """Main entry point to process a full audio file."""
         logger.info(f"Processing file: {file_path}")
         
+        # Reset session state for each file to prevent duplication
+        self.audio = None
+        self.asr_segments = []
+        self.embeddings = []
+        self.aligned_segments = []
+        self.final_transcript = []
+        self.memory_bank = {}
+        
         # 1. Load Audio
         audio, _ = librosa.load(file_path, sr=self.sample_rate, mono=True)
         self.audio = audio
