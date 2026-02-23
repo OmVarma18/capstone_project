@@ -1,102 +1,59 @@
-import { Pool } from 'pg';
-import { verifyToken } from '@clerk/backend';
+import { Pool } from "pg";
 
-// Verify required env variables
-if (!process.env.DATABASE_URL) {
-    throw new Error("Missing DATABASE_URL in Vercel environment.");
-}
+const DATABASE_URL = process.env.DATABASE_URL;
 
-// In serverless, it's better to instantiate the pool outside the handler
-// so it can be reused across warm invocations
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
+    connectionString: DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+});
+
+pool.on('error', (err) => {
+    console.error('Unexpected error on idle pg client', err);
 });
 
 export default async function handler(req, res) {
-    // CORS configuration
-    res.setHeader('Access-Control-Allow-Credentials', true)
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
-    )
+    // Handle CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id');
 
     if (req.method === 'OPTIONS') {
-        res.status(200).end()
-        return
+        return res.status(200).end();
     }
 
-    // Handle Fetching Sessions (GET)
     if (req.method === 'GET') {
         try {
-            // 1. Get auth token from header
-            const token = req.headers.authorization?.split(' ')[1];
-            if (!token) {
-                return res.status(401).json({ error: "Unauthorized: Missing token" });
+            const userId = req.headers['x-user-id'];
+            if (!userId) {
+                return res.status(401).json({ error: "Missing x-user-id header" });
             }
 
-            // Verify the token server-side via Clerk
-            let verifiedUserId;
-            try {
-                const payload = await verifyToken(token, {
-                    secretKey: process.env.CLERK_SECRET_KEY
-                });
-                verifiedUserId = payload.sub; // The true Clerk user ID
-            } catch (err) {
-                console.error("Clerk Token Verification Failed:", err);
-                return res.status(401).json({
-                    error: "Unauthorized: Invalid token",
-                    details: err.message
-                });
-            }
-
-            // 2. Query Neon Database securely using verified ID
+            console.log(`Fetching sessions for ${userId}...`);
             const result = await pool.query(
                 'SELECT id, title, summary, transcript, tasks, created_at FROM sessions WHERE user_id = $1 ORDER BY created_at DESC',
-                [verifiedUserId]
+                [userId]
             );
 
-            // Return the rows to the client
             return res.status(200).json(result.rows);
-
         } catch (error) {
             console.error("Database Fetch Error:", error);
             return res.status(500).json({ error: 'Failed to fetch sessions from database' });
         }
     }
 
-    // Handle Deleting Sessions (DELETE)
     if (req.method === 'DELETE') {
         try {
-            const { id } = req.query; // e.g. /api/sessions?id=123
-            const token = req.headers.authorization?.split(' ')[1];
+            const id = req.query.id;
+            const userId = req.headers['x-user-id'];
 
-            if (!id || !token) {
-                return res.status(400).json({ error: "Missing ID or Token" });
+            if (!id || !userId) {
+                return res.status(400).json({ error: "Missing ID or User ID" });
             }
 
-            // Verify the token server-side via Clerk
-            let verifiedUserId;
-            try {
-                const payload = await verifyToken(token, {
-                    secretKey: process.env.CLERK_SECRET_KEY
-                });
-                verifiedUserId = payload.sub;
-            } catch (err) {
-                return res.status(401).json({
-                    error: "Unauthorized: Invalid token",
-                    details: err.message
-                });
-            }
-
-            // Ensure user only deletes their own session
+            console.log(`Deleting session ${id}...`);
             const result = await pool.query(
                 'DELETE FROM sessions WHERE id = $1 AND user_id = $2 RETURNING id',
-                [id, verifiedUserId]
+                [id, userId]
             );
 
             if (result.rowCount === 0) {
@@ -104,12 +61,11 @@ export default async function handler(req, res) {
             }
 
             return res.status(200).json({ message: "Successfully deleted session." });
-
         } catch (error) {
             console.error("Database Delete Error:", error);
             return res.status(500).json({ error: 'Failed to delete session' });
         }
     }
 
-    return res.status(405).json({ message: 'Method Not Allowed' });
+    return res.status(405).json({ error: 'Method Not Allowed' });
 }

@@ -2,13 +2,14 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
+// Simple in-memory cache to prevent redundant fetches when switching pages
+let sessionCache = {
+    data: null,
+    timestamp: null
+};
+const CACHE_TTL = 5 * 60 * 1000; // 2 minutes
+
 export const api = {
-    /**
-     * Uploads an audio file for transcription
-     * @param {File} file - The audio file to upload
-     * @param {string} token - The Clerk session token
-     * @returns {Promise<Object>} The transcription result
-     */
     /**
      * Uploads an audio file by sending base64 data to our Serverless function
      * @param {File} file - The audio file to upload
@@ -37,6 +38,10 @@ export const api = {
                     "Authorization": `Bearer ${token}`
                 }
             });
+
+            // Invalidate cache since new data is processing/available
+            sessionCache.data = null;
+
             return response.data;
         } catch (error) {
             console.error("API Upload Error:", error);
@@ -46,15 +51,32 @@ export const api = {
 
     /**
      * Fetches user's session history from Neon via Serverless DB Bridge
+     * Uses in-memory caching to prevent redundant calls across navigations.
      */
-    fetchSessions: async (token, userId) => {
+    fetchSessions: async (token, userId, forceRefresh = false) => {
         try {
+            // Check cache validity
+            const isCacheValid = sessionCache.data && sessionCache.timestamp && (Date.now() - sessionCache.timestamp < CACHE_TTL);
+
+            if (!forceRefresh && isCacheValid) {
+                console.log("Serving sessions from internal cache.");
+                return sessionCache.data;
+            }
+
+            console.log("Fetching fresh sessions from API...");
             const res = await axios.get(`${API_URL}/sessions`, {
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "x-user-id": userId  // MVP auth pass-through
                 }
             });
+
+            // Set cache
+            sessionCache = {
+                data: res.data,
+                timestamp: Date.now()
+            };
+
             return res.data;
         } catch (error) {
             console.error("API Fetch Error:", error);
@@ -64,6 +86,7 @@ export const api = {
 
     /**
      * Deletes a session from Neon via Serverless DB Bridge
+     * Actively updates the in-memory cache to stay in sync.
      */
     deleteSession: async (id, token, userId) => {
         try {
@@ -73,6 +96,11 @@ export const api = {
                     "x-user-id": userId
                 }
             });
+
+            // Update cache optimistically if it exists
+            if (sessionCache.data) {
+                sessionCache.data = sessionCache.data.filter(session => session.id !== id);
+            }
         } catch (error) {
             console.error("API Delete Error:", error);
             throw error;

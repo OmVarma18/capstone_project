@@ -30,8 +30,14 @@ const corsHeaders = {
 
 console.log("🚀 Starting local API Server on http://localhost:3001");
 
+pool.on('error', (err, client) => {
+    console.error('Unexpected error on idle pg client', err);
+    // Don't crash the server, just log the error.
+});
+
 serve({
     port: 3001,
+    idleTimeout: 255, // Set a longer idle timeout to accommodate Neon sleeping instances
     async fetch(req) {
         const url = new URL(req.url);
 

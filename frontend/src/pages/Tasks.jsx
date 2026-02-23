@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { api } from "../services/api";
+import { motion } from "motion/react";
+import { CheckSquare, Clock, User as UserIcon, CheckCircle2, Circle } from "lucide-react";
+import { cn } from "../lib/utils";
 
 const Tasks = () => {
   const { getToken } = useAuth();
@@ -8,6 +11,7 @@ const Tasks = () => {
 
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -31,6 +35,7 @@ const Tasks = () => {
         setTasks(allTasks);
       } catch (err) {
         console.error("Failed to load tasks", err);
+        setError("Unable to reach the database. Please ensure the local backend server is running.");
       } finally {
         setIsLoading(false);
       }
@@ -50,61 +55,123 @@ const Tasks = () => {
       )
     );
   };
+
+  const pendingCount = tasks.filter(t => !t.completed && t.status !== 'Completed').length;
+
   return (
-    <div className="min-h-screen bg-[#0c0321] text-white font-display pt-18">
-      <main className="flex h-full grow flex-col">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-wrap justify-between gap-4 items-center mb-6">
-            <h1 className="text-4xl font-black leading-tight tracking-[-0.033em]">
-              Action Items
-            </h1>
-            <p className="text-gray-400">Total Tasks: {tasks.length}</p>
+    <div className="flex flex-col min-h-screen w-full bg-black text-zinc-100 pt-24">
+      <main className="flex-1 px-6 md:px-12 py-8 relative">
+        <div className="max-w-7xl mx-auto">
+
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row justify-between gap-6 items-start sm:items-end mb-10">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
+                <CheckSquare className="w-8 h-8 text-indigo-400" />
+                Action Items
+              </h1>
+              <p className="text-zinc-500">Track and manage tasks automatically extracted from your meetings.</p>
+            </div>
+
+            {/* Stats Pill */}
+            <div className="flex items-center gap-3 px-5 py-2.5 bg-[#080808] border border-[#1c1c1c] rounded-full">
+              <span className="text-zinc-400 text-sm font-medium">Pending Tasks</span>
+              <span className="text-indigo-400 font-bold ml-1">{pendingCount}</span>
+              <span className="text-zinc-600 mx-2">|</span>
+              <span className="text-zinc-400 text-sm font-medium">Total</span>
+              <span className="text-white font-bold ml-1">{tasks.length}</span>
+            </div>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-[#2a1255] bg-[#1a0938]">
+          <div className="overflow-hidden rounded-2xl border border-[#1c1c1c] bg-[#080808]">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-[#0c0321]">
-                    <th className="px-4 py-3 text-left w-12">Status</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Task Name</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Meeting</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Assignee</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Due</th>
+                  <tr className="bg-[#111111]">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider w-16">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Task Item</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Source Meeting</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider w-40">Assignee</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider w-32">Due Date</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {tasks.length === 0 ? (
+                <tbody className="divide-y divide-[#1c1c1c]">
+                  {isLoading ? (
                     <tr>
-                      <td colSpan="5" className="px-4 py-10 text-center text-gray-500">
-                        No tasks found. Upload a meeting audio to generate tasks!
+                      <td colSpan="5" className="px-6 py-12 text-center text-zinc-500">
+                        Gathering action items...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-12 text-center text-red-400">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <CheckSquare className="w-10 h-10 text-red-500/30 mb-2" />
+                          <p className="font-medium text-red-400">Connection Error</p>
+                          <p className="text-sm text-red-400/80">{error}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : tasks.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-12 text-center text-zinc-500 flex flex-col items-center justify-center gap-4">
+                        <CheckSquare className="w-12 h-12 text-zinc-800" />
+                        <p>No tasks found. Upload a meeting audio to generate tasks!</p>
                       </td>
                     </tr>
                   ) : (
-                    tasks.map((task, idx) => (
-                      <tr key={idx} className="border-t border-[#2a1255] hover:bg-[#241044] transition-colors">
-                        <td className="px-4 py-4 text-center">
-                          <input
-                            type="checkbox"
-                            checked={task.completed || task.status === 'Completed'}
-                            onChange={() => toggleTask(task.meetingId, task.title)}
-                            className="h-5 w-5 rounded border-[#2a1255] bg-[#1a0938] text-purple-500 cursor-pointer"
-                          />
-                        </td>
-                        <td className={`px-4 py-4 text-sm ${task.completed ? 'line-through text-gray-500' : 'text-white'}`}>
-                          {task.title}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-400">
-                          {task.meetingTitle}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-300">
-                          {task.assignee || 'Unassigned'}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-300">
-                          {task.due || 'N/A'}
-                        </td>
-                      </tr>
-                    ))
+                    tasks.map((task, idx) => {
+                      const isCompleted = task.completed || task.status === 'Completed';
+
+                      return (
+                        <motion.tr
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                          key={idx}
+                          className={cn(
+                            "group transition-colors",
+                            isCompleted ? "bg-[#050505] hover:bg-[#0a0a0a]" : "bg-[#080808] hover:bg-[#111111]"
+                          )}
+                        >
+                          <td className="px-6 py-5 text-center">
+                            <button
+                              onClick={() => toggleTask(task.meetingId, task.title)}
+                              className="focus:outline-none transition-transform active:scale-90"
+                            >
+                              {isCompleted ? (
+                                <CheckCircle2 className="w-6 h-6 text-indigo-500" />
+                              ) : (
+                                <Circle className="w-6 h-6 text-zinc-600 group-hover:text-indigo-400 transition-colors" />
+                              )}
+                            </button>
+                          </td>
+                          <td className={cn(
+                            "px-6 py-5 text-sm transition-colors",
+                            isCompleted ? 'text-zinc-600 line-through' : 'text-zinc-200 font-medium'
+                          )}>
+                            {task.title}
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[#111111] border border-[#1c1c1c] text-xs font-medium text-zinc-400 truncate max-w-[200px]">
+                              {task.meetingTitle}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-2 text-sm text-zinc-400">
+                              <UserIcon className="w-3.5 h-3.5" />
+                              {task.assignee || 'Unassigned'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-2 text-sm text-zinc-400">
+                              <Clock className="w-3.5 h-3.5" />
+                              {task.due || 'N/A'}
+                            </div>
+                          </td>
+                        </motion.tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

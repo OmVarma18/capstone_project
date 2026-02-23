@@ -1,114 +1,77 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
-const styles = {
-    heroSection: {
-        minHeight: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        textAlign: 'center',
-        color: '#ffffff',
-        backgroundColor: '#09031c',
-        backgroundImage: 'radial-gradient(circle at center, rgba(30, 0, 70, 0.5) 0%, rgba(0, 0, 0, 0) 70%)',
-        padding: '20px'
-    },
-    contentContainer: {
-        maxWidth: '700px',
-        width: '100%'
-    },
-    logo: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        marginBottom: '20px',
-        padding: '4px 10px',
-        borderRadius: '20px',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        fontSize: '0.9em',
-        fontWeight: '600'
-    },
-    dot: {
-        height: '6px',
-        width: '6px',
-        backgroundColor: '#03a9f4',
-        borderRadius: '50%',
-        display: 'inline-block',
-        marginRight: '5px'
-    },
-    h1: {
-        fontSize: 'clamp(2.5rem, 6vw, 5rem)',
-        lineHeight: '1.1',
-        marginBottom: '15px',
-        fontWeight: '800'
-    },
-    highlight: {
-        background: 'linear-gradient(90deg, #e590ff 0%, #03a9f4 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        textFillColor: 'transparent'
-    },
-    p: {
-        fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-        color: 'rgba(255, 255, 255, 0.7)',
-        margin: '0 auto 40px',
-        maxWidth: '550px'
-    },
-    ctaButtons: {
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '15px'
-    },
-    btn: {
-        padding: '14px 28px',
-        border: 'none',
-        borderRadius: '6px',
-        fontSize: '1rem',
-        fontWeight: '600',
-        cursor: 'pointer',
-        transition: 'transform 0.2s, opacity 0.2s'
-    },
-    primaryBtn: {
-        backgroundColor: '#ffffff',
-        color: '#09031c'
-    },
-    secondaryBtn: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        color: '#ffffff',
-        border: '1px solid rgba(255, 255, 255, 0.3)'
-    }
-};
+import { motion } from "motion/react";
+import { cn } from "../lib/utils";
 
 const Hero = () => {
     return (
-        <div style={styles.heroSection}>
-            <div style={styles.contentContainer}>
-                <div style={styles.logo}>
-                    <span style={styles.dot}></span>TalkNote
-                </div>
-                <h1 style={styles.h1}>
-                    Capture Every <span style={styles.highlight}>Conversation</span>
-                </h1>
-                <p style={styles.p}>
-                    TalkNote captures your spoken ideas, lectures, and meetings, and automatically organizes them into clear, actionable text.
-                </p>
-                <div style={styles.ctaButtons}>
-                    {/* Button 1: Start for Free */}
-                    <Link to="/LiveMeeting" style={{ textDecoration: 'none' }}>
-                        <button style={{ ...styles.btn, ...styles.primaryBtn }}>
+        <section className="relative min-h-[90vh] flex flex-col justify-center items-center text-center px-6 overflow-hidden bg-black text-zinc-100">
+            {/* Background Glows (Subtle, strictly structural) */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-white/2 blur-[120px] rounded-full pointer-events-none" />
+
+            <div className="relative z-10 max-w-4xl mx-auto mt-20">
+                {/* Micro-badge */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="inline-flex items-center gap-2 px-3 py-1 mb-8 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-zinc-400"
+                >
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                    TalkNote Beta
+                </motion.div>
+
+                {/* Hero Headline (BlurIn Animation) */}
+                <motion.h1
+                    initial={{ opacity: 0, filter: "blur(12px)", y: 20 }}
+                    animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+                    className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]"
+                >
+                    Capture the <span className="text-zinc-500">meeting.</span><br />
+                    We'll handle the <span className="text-white">task.</span>
+                </motion.h1>
+
+                {/* Subheadline (FadeSlideUp Animation) */}
+                <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+                    className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed font-light"
+                >
+                    TalkNote listens, transcribes, and extracts your action items in seconds. Be completely present in your conversations, let AI handle the documentation.
+                </motion.p>
+
+                {/* CTAs (FadeSlideUp Animation) */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-4"
+                >
+                    <Link to="/sign-in" className="w-full sm:w-auto">
+                        <button className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white text-black font-semibold hover:bg-zinc-200 transition-colors duration-200 active:scale-95">
                             Start for Free
                         </button>
                     </Link>
-
-                    {/* Button 2: Book a Demo */}
-                    <Link to="/LiveMeeting" style={{ textDecoration: 'none' }}>
-                        <button style={{ ...styles.btn, ...styles.secondaryBtn }}>
-                            Book a Demo
+                    <a href="#how-it-works" className="w-full sm:w-auto">
+                        <button className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-transparent border border-[#1f1f1f] text-zinc-300 font-medium hover:text-white hover:border-border-strong transition-colors duration-200">
+                            How it works
                         </button>
-                    </Link>
-                </div>
+                    </a>
+                </motion.div>
+
+                {/* Social Proof snippet */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 1, delay: 1 }}
+                    className="mt-16 text-xs text-zinc-600 font-medium tracking-wide uppercase"
+                >
+                    Secured by Clerk & Neon Postgres
+                </motion.div>
             </div>
-        </div>
+        </section>
     );
 };
 
