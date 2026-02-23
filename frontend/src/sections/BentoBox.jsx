@@ -73,7 +73,7 @@ const BentoBox = () => {
                                 show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
                             }}
                             className={cn(
-                                "group relative overflow-hidden rounded-2xl bg-[#080808] border border-[#1c1c1c] p-8 hover:border-[#2e2e2e] transition-colors duration-300",
+                                "group relative overflow-hidden rounded-2xl bg-surface border border-[#1c1c1c] p-8 hover:border-[#2e2e2e] transition-colors duration-300",
                                 feature.className
                             )}
                         >
