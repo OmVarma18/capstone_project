@@ -1,8 +1,5 @@
 import { Pool } from 'pg';
-import { createClerkClient } from '@clerk/backend';
-
-// Initialize Clerk client (automatically picks up CLERK_SECRET_KEY)
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+import { verifyToken } from '@clerk/backend';
 
 // Verify required env variables
 if (!process.env.DATABASE_URL) {
@@ -45,7 +42,9 @@ export default async function handler(req, res) {
             // Verify the token server-side via Clerk
             let verifiedUserId;
             try {
-                const payload = await clerk.verifyToken(token);
+                const payload = await verifyToken(token, {
+                    secretKey: process.env.CLERK_SECRET_KEY
+                });
                 verifiedUserId = payload.sub; // The true Clerk user ID
             } catch (err) {
                 console.error("Clerk Token Verification Failed:", err);
@@ -83,7 +82,9 @@ export default async function handler(req, res) {
             // Verify the token server-side via Clerk
             let verifiedUserId;
             try {
-                const payload = await clerk.verifyToken(token);
+                const payload = await verifyToken(token, {
+                    secretKey: process.env.CLERK_SECRET_KEY
+                });
                 verifiedUserId = payload.sub;
             } catch (err) {
                 return res.status(401).json({
