@@ -1,4 +1,8 @@
 import { Pool } from 'pg';
+import { createClerkClient } from '@clerk/backend';
+
+// Initialize Clerk client (automatically picks up CLERK_SECRET_KEY)
+const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 // Verify required env variables
 if (!process.env.DATABASE_URL) {
@@ -32,18 +36,26 @@ export default async function handler(req, res) {
     // Handle Fetching Sessions (GET)
     if (req.method === 'GET') {
         try {
-            // 1. Get userId from request query or auth header
-            // In production with Clerk, decode JWT. For MVP, client sends userId in header
-            const userId = req.headers['x-user-id'];
-
-            if (!userId) {
-                return res.status(401).json({ error: "Missing x-user-id header" });
+            // 1. Get auth token from header
+            const token = req.headers.authorization?.split(' ')[1];
+            if (!token) {
+                return res.status(401).json({ error: "Unauthorized: Missing token" });
             }
 
-            // 2. Query Neon Database securely
+            // Verify the token server-side via Clerk
+            let verifiedUserId;
+            try {
+                const payload = await clerk.verifyToken(token);
+                verifiedUserId = payload.sub; // The true Clerk user ID
+            } catch (err) {
+                console.error("Clerk Token Verification Failed:", err);
+                return res.status(401).json({ error: "Unauthorized: Invalid token" });
+            }
+
+            // 2. Query Neon Database securely using verified ID
             const result = await pool.query(
                 'SELECT id, title, summary, transcript, tasks, created_at FROM sessions WHERE user_id = $1 ORDER BY created_at DESC',
-                [userId]
+                [verifiedUserId]
             );
 
             // Return the rows to the client
@@ -59,16 +71,25 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
         try {
             const { id } = req.query; // e.g. /api/sessions?id=123
-            const userId = req.headers['x-user-id'];
+            const token = req.headers.authorization?.split(' ')[1];
 
-            if (!id || !userId) {
-                return res.status(400).json({ error: "Missing ID or User ID" });
+            if (!id || !token) {
+                return res.status(400).json({ error: "Missing ID or Token" });
+            }
+
+            // Verify the token server-side via Clerk
+            let verifiedUserId;
+            try {
+                const payload = await clerk.verifyToken(token);
+                verifiedUserId = payload.sub;
+            } catch (err) {
+                return res.status(401).json({ error: "Unauthorized: Invalid token" });
             }
 
             // Ensure user only deletes their own session
             const result = await pool.query(
                 'DELETE FROM sessions WHERE id = $1 AND user_id = $2 RETURNING id',
-                [id, userId]
+                [id, verifiedUserId]
             );
 
             if (result.rowCount === 0) {

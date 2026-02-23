@@ -1,4 +1,8 @@
 import fetch from 'node-fetch';
+import { createClerkClient } from '@clerk/backend';
+
+// Initialize Clerk client (it automatically picks up CLERK_SECRET_KEY from Vercel env)
+const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export const config = {
     api: {
@@ -31,17 +35,28 @@ export default async function handler(req, res) {
         // 1. Get the auth token from Clerk (passed in header)
         const token = req.headers.authorization?.split(' ')[1];
         if (!token) {
-            return res.status(401).json({ error: "Unauthorized" });
+            return res.status(401).json({ error: "Unauthorized: Missing token" });
         }
 
-        // In a real app, you'd decode the JWT here to get the user ID
-        // For now, we'll just extract it lazily or accept what the client sends
-        // The client sends the body as JSON containing base64 file data
+        // Verify the token server-side via Clerk
+        let verifiedUserId;
+        try {
+            const payload = await clerk.verifyToken(token);
+            verifiedUserId = payload.sub; // The true Clerk user ID
+        } catch (err) {
+            console.error("Clerk Token Verification Failed:", err);
+            return res.status(401).json({ error: "Unauthorized: Invalid token" });
+        }
 
-        const { filename, fileData, userId } = req.body;
+        const { filename, fileData } = req.body;
 
-        if (!filename || !fileData || !userId) {
+        if (!filename || !fileData) {
             return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Prevent abuse: Hard limit on base64 payload size (e.g. 50MB)
+        if (fileData.length > 50_000_000) {
+            return res.status(413).json({ error: 'Payload too large' });
         }
 
         // 2. Prepare GitHub API details
@@ -52,8 +67,8 @@ export default async function handler(req, res) {
         // Sanitize filename and append unique ID to avoid collisions
         const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
         const timestamp = Date.now();
-        // Prefix the filename with the clerk userId so process_batch can read it
-        const finalFilename = `${userId}___${timestamp}_${safeFilename}`;
+        // Prefix the filename with the verified Clerk userId so process_batch can accurately read it
+        const finalFilename = `${verifiedUserId}___${timestamp}_${safeFilename}`;
         const filePath = `uploads/${finalFilename}`;
 
         console.log(`Uploading ${finalFilename} to GitHub...`);
@@ -69,7 +84,7 @@ export default async function handler(req, res) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: `🎙️ Auto-upload audio from user ${userId}`,
+                    message: `🎙️ Auto-upload audio from user ${verifiedUserId}`,
                     content: fileData, // Already base64 encoded from the frontend
                     branch: 'main'
                 }),
