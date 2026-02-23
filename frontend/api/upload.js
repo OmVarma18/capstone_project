@@ -45,7 +45,10 @@ export default async function handler(req, res) {
             verifiedUserId = payload.sub; // The true Clerk user ID
         } catch (err) {
             console.error("Clerk Token Verification Failed:", err);
-            return res.status(401).json({ error: "Unauthorized: Invalid token" });
+            return res.status(401).json({
+                error: "Unauthorized: Invalid token",
+                details: err.message
+            });
         }
 
         const { filename, fileData } = req.body;

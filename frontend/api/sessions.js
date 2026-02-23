@@ -49,7 +49,10 @@ export default async function handler(req, res) {
                 verifiedUserId = payload.sub; // The true Clerk user ID
             } catch (err) {
                 console.error("Clerk Token Verification Failed:", err);
-                return res.status(401).json({ error: "Unauthorized: Invalid token" });
+                return res.status(401).json({
+                    error: "Unauthorized: Invalid token",
+                    details: err.message
+                });
             }
 
             // 2. Query Neon Database securely using verified ID
@@ -83,7 +86,10 @@ export default async function handler(req, res) {
                 const payload = await clerk.verifyToken(token);
                 verifiedUserId = payload.sub;
             } catch (err) {
-                return res.status(401).json({ error: "Unauthorized: Invalid token" });
+                return res.status(401).json({
+                    error: "Unauthorized: Invalid token",
+                    details: err.message
+                });
             }
 
             // Ensure user only deletes their own session
