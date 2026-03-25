@@ -196,17 +196,28 @@ class TalkNotePipeline:
                 self.memory_bank[spk] = self.embeddings[i]["embedding"]
 
     def _estimate_num_speakers(self, X, k_min=2, k_max=5):
-        if len(X) < k_max: return 2
+        # silhouette_score requires 2 <= n_labels <= n_samples - 1
+        safe_k_max = min(k_max, len(X) - 1)
+        
+        if safe_k_max < k_min:
+            return 1 if len(X) == 1 else 2
+            
         best_k = 2
         best_score = -1
         
-        for k in range(k_min, k_max + 1):
-            clusterer = SpectralClustering(n_clusters=k, random_state=42)
-            labels = clusterer.fit_predict(X)
-            score = silhouette_score(X, labels)
-            if score > best_score:
-                best_score = score
-                best_k = k
+        for k in range(k_min, safe_k_max + 1):
+            try:
+                clusterer = SpectralClustering(n_clusters=k, random_state=42, affinity='nearest_neighbors' if len(X) > 4 else 'rbf')
+                labels = clusterer.fit_predict(X)
+                # Ensure we actually got k clusters back, sometimes spectral clustering returns fewer
+                if len(set(labels)) > 1 and len(set(labels)) < len(X):
+                    score = silhouette_score(X, labels)
+                    if score > best_score:
+                        best_score = score
+                        best_k = k
+            except Exception:
+                continue
+                
         return best_k
 
     def _align_segments(self):
