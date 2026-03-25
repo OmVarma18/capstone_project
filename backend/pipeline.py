@@ -170,14 +170,18 @@ class TalkNotePipeline:
         n_speakers = self._estimate_num_speakers(X)
         logger.info(f"Estimated speakers: {n_speakers}")
         
-        # Fix for short audio files: nearest_neighbors requires n_neighbors <= n_samples
-        n_neighbors = min(10, len(X) - 1)
-        if n_neighbors < 1:
-            n_neighbors = 1
+        # Default to rbf for very small audio clips (like 30-sec tests)
+        # nearest_neighbors creates a sparse matrix which fails if n_clusters >= n_samples
+        if len(X) < max(4, n_speakers + 1):
+            affinity = 'rbf'
+            n_neighbors = 10  # ignored for rbf
+        else:
+            affinity = 'nearest_neighbors'
+            n_neighbors = min(10, len(X) - 1)
             
         clusterer = SpectralClustering(
             n_clusters=n_speakers,
-            affinity='nearest_neighbors',
+            affinity=affinity,
             n_neighbors=n_neighbors,
             random_state=42
         )
