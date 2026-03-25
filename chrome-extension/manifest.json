@@ -34,6 +34,13 @@
       ],
       "js": ["content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost:5173/*"
+      ],
+      "js": ["auth_bridge.js"],
+      "run_at": "document_idle"
     }
   ],
   "icons": {
