@@ -62,12 +62,21 @@ def generate_insights(transcript):
         You are an intelligent meeting assistant. Analyze the following meeting transcript.
         The transcript may be in any language, but you MUST always respond in English.
         Return a beautiful, concise summary of the conversation in English, and extract an array of actionable tasks in English.
+        Also, generate a short, professional title for the meeting based on the agenda discussed.
+        
+        For each task, determine the assignee (if mentioned, otherwise 'Unassigned') and the due date (if mentioned, otherwise 'N/A').
         
         Please format strictly as a JSON object matching this schema:
         {{
+            "title": "A short, descriptive title based on the agenda",
             "summary": "a couple of sentences summarizing the main points in English",
             "tasks": [
-                {{"title": "The actionable task based on the transcript, written in English", "status": "pending"}}
+                {{
+                    "title": "The actionable task based on the transcript, written in English",
+                    "status": "pending",
+                    "assignee": "Person's name or Unassigned",
+                    "due_date": "Date/Day or N/A"
+                }}
             ]
         }}
         
@@ -89,7 +98,11 @@ def generate_insights(transcript):
             
         # Parse the JSON response
         data = json.loads(raw_text)
-        return {"summary": data.get("summary", ""), "tasks": data.get("tasks", [])}
+        return {
+            "title": data.get("title", ""),
+            "summary": data.get("summary", ""),
+            "tasks": data.get("tasks", [])
+        }
         
     except Exception as e:
         logger.error(f"Error calling Gemini AI: {e}")
@@ -112,7 +125,7 @@ def process_files():
     # create_table_if_not_exists()
     
     audio_files = []
-    for ext in ['*.mp3', '*.wav', '*.m4a', '*.ogg', '*.m4p', '*.mp4']:
+    for ext in ['*.mp3', '*.wav', '*.m4a', '*.ogg', '*.m4p', '*.mp4', '*.webm', '*.weba']:
         audio_files.extend(glob.glob(os.path.join(UPLOAD_DIR, ext)))
 
     if not audio_files:
@@ -155,8 +168,12 @@ def process_files():
             
             # 2. Heuristic Summary & Tasks (Mocking for now)
             insights = generate_insights(result['transcript'])
-            summary = insights['summary']
-            tasks = insights['tasks']
+            agenda_title = insights.get('title')
+            summary = insights.get('summary', '')
+            tasks = insights.get('tasks', [])
+            
+            # Use the AI title if valid, otherwise fallback to filename
+            final_title = agenda_title if (agenda_title and len(agenda_title) > 3) else original_title
             
             # --- DEBUG LOGGING ---
             logger.info("============== TRANSCRIPT RESULT ==============")
@@ -176,7 +193,7 @@ def process_files():
                 VALUES (%s, %s, %s, %s, %s)
             """, (
                 user_id,
-                original_title,
+                final_title,
                 summary,
                 Json(result['transcript']),
                 Json(tasks)

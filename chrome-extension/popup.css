@@ -1,0 +1,346 @@
+/* ========================================
+   TalkNote Chrome Extension – Popup Styles
+   Dark theme matching the web app
+   ======================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 360px;
+  min-height: 420px;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0a0a0a;
+  color: #e4e4e7;
+  overflow: hidden;
+}
+
+.hidden { display: none !important; }
+
+/* ---- Views ---- */
+.view {
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+/* ---- Auth View ---- */
+.logo-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px 24px;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
+}
+
+.logo-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.logo-subtitle {
+  font-size: 13px;
+  color: #71717a;
+}
+
+#auth-view .btn-primary {
+  margin: 0 32px 12px;
+}
+
+.hint {
+  text-align: center;
+  font-size: 11px;
+  color: #52525b;
+  padding-bottom: 32px;
+}
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 12px 20px;
+}
+
+.btn-primary {
+  background: #fff;
+  color: #0a0a0a;
+}
+.btn-primary:hover { background: #e4e4e7; }
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-secondary {
+  background: #1c1c1c;
+  color: #a1a1aa;
+  border: 1px solid #2e2e2e;
+}
+.btn-secondary:hover { background: #262626; color: #e4e4e7; }
+
+.btn-ghost {
+  background: transparent;
+  color: #71717a;
+  padding: 6px;
+  border-radius: 8px;
+}
+.btn-ghost:hover { background: #1c1c1c; color: #e4e4e7; }
+
+.btn-full { width: calc(100% - 64px); }
+.btn-sm { font-size: 12px; padding: 8px 16px; }
+
+/* ---- Header ---- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #1c1c1c;
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(12px);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #111;
+  border: 1px solid #2e2e2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #818cf8;
+}
+
+.header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-email {
+  font-size: 11px;
+  color: #52525b;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Meeting Banner ---- */
+.meeting-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #111;
+  border-bottom: 1px solid #1c1c1c;
+  font-size: 12px;
+  color: #71717a;
+  transition: all 0.3s ease;
+}
+
+.meeting-banner.detected {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.02) 100%);
+  color: #4ade80;
+  border-bottom-color: rgba(34, 197, 94, 0.15);
+}
+
+.meeting-banner.no-meeting {
+  color: #71717a;
+}
+
+.meeting-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #52525b;
+  flex-shrink: 0;
+}
+
+.meeting-banner.detected .meeting-dot {
+  background: #4ade80;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ---- Record Panel ---- */
+.record-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.state-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #a1a1aa;
+}
+
+.state-hint {
+  font-size: 11px;
+  color: #52525b;
+}
+
+/* Record Circle */
+.record-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #1c1c1c;
+  border: 3px solid #2e2e2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.record-circle:hover {
+  background: #262626;
+  border-color: #ef4444;
+  transform: scale(1.05);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.15);
+}
+.record-circle:active { transform: scale(0.95); }
+
+.record-circle.recording {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+  70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Recording Info */
+.recording-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recording-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse-dot 1s infinite;
+}
+
+.recording-timer {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ef4444;
+  font-variant-numeric: tabular-nums;
+}
+
+.recording-label { color: #ef4444; }
+
+/* Spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #1c1c1c;
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Done */
+.done-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.1);
+  border: 2px solid rgba(74, 222, 128, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4ade80;
+}
+
+/* Error */
+.error-label { color: #f87171 !important; }
+
+/* ---- Footer ---- */
+.footer {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 16px;
+  border-top: 1px solid #1c1c1c;
+  background: #080808;
+}
+
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #71717a;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.footer-link:hover {
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
