@@ -189,26 +189,21 @@ btnStartRecord.addEventListener('click', async () => {
   }
 
   // Request tabCapture from the popup (requires user gesture)
-  try {
-    const stream = await chrome.tabCapture.capture({
-      audio: true,
-      video: false
-    });
+  // chrome.tabCapture.capture() is callback-based, NOT promise-based
+  chrome.tabCapture.capture({ audio: true, video: false }, (stream) => {
+    if (chrome.runtime.lastError) {
+      console.error('tabCapture error:', chrome.runtime.lastError);
+      showError(`Capture failed: ${chrome.runtime.lastError.message}`);
+      return;
+    }
 
     if (!stream) {
       showError('Could not capture tab audio. Make sure a tab is active.');
       return;
     }
 
-    // Send the stream to the background via a port
-    // But since we can't transfer MediaStream across contexts in MV3,
-    // we handle recording right here in the popup and send data to background for upload
     startRecordingWithStream(stream, auth);
-
-  } catch (err) {
-    console.error('tabCapture error:', err);
-    showError(`Capture failed: ${err.message}`);
-  }
+  });
 });
 
 let mediaRecorder = null;
