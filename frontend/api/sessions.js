@@ -14,7 +14,7 @@ pool.on('error', (err) => {
 export default async function handler(req, res) {
     // Handle CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id');
 
     if (req.method === 'OPTIONS') {
@@ -64,6 +64,43 @@ export default async function handler(req, res) {
         } catch (error) {
             console.error("Database Delete Error:", error);
             return res.status(500).json({ error: 'Failed to delete session' });
+        }
+    }
+
+    if (req.method === 'PATCH') {
+        try {
+            const { sessionId, taskIndex, completed } = req.body;
+            const userId = req.headers['x-user-id'];
+
+            if (!sessionId || taskIndex === undefined || completed === undefined || !userId) {
+                return res.status(400).json({ error: "Missing required fields" });
+            }
+
+            const newStatus = completed ? 'Completed' : 'Pending';
+
+            const result = await pool.query(
+                `UPDATE sessions
+                 SET tasks = jsonb_set(
+                     jsonb_set(tasks, $1, $2::jsonb),
+                     $3, $4::jsonb
+                 )
+                 WHERE id = $5 AND user_id = $6
+                 RETURNING id`,
+                [
+                    `{${taskIndex},completed}`, JSON.stringify(completed),
+                    `{${taskIndex},status}`,    JSON.stringify(newStatus),
+                    sessionId, userId
+                ]
+            );
+
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: "Session not found or forbidden" });
+            }
+
+            return res.status(200).json({ message: "Task updated successfully" });
+        } catch (error) {
+            console.error("Task Update Error:", error);
+            return res.status(500).json({ error: 'Failed to update task' });
         }
     }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { api } from "../services/api";
 import { motion } from "motion/react";
-import { CheckSquare, Clock, User as UserIcon, CheckCircle2, Circle } from "lucide-react";
+import { CheckSquare, Clock, User as UserIcon, CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { cn } from "../lib/utils";
 
 const Tasks = () => {
@@ -12,6 +12,8 @@ const Tasks = () => {
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [savingTask, setSavingTask] = useState(null); // key = `${meetingId}-${taskIndex}`
+  const [toggleError, setToggleError] = useState(null);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -25,8 +27,9 @@ const Tasks = () => {
 
         // Extract tasks from all sessions
         const allTasks = data.flatMap(session =>
-          (session.tasks || []).map(t => ({
+          (session.tasks || []).map((t, taskIndex) => ({
             ...t,
+            taskIndex,           // position in the DB tasks JSONB array
             meetingTitle: session.title.replace('___', ' - ').replace(/^[a-zA-Z0-9_]+ - \d+_/, ''),
             meetingId: session.id
           }))
@@ -44,16 +47,38 @@ const Tasks = () => {
     fetchTasks();
   }, [user, getToken]);
 
-  const toggleTask = (meetingId, taskTitle) => {
-    // For MVP MVP, we just toggle locally since we don't have a specific
-    // "update task" endpoint yet in the serverless backend.
-    setTasks(prevTasks =>
-      prevTasks.map(t =>
-        (t.meetingId === meetingId && t.title === taskTitle)
-          ? { ...t, completed: !t.completed, status: !t.completed ? 'Completed' : 'Pending' }
+  const toggleTask = async (meetingId, taskIndex, currentCompleted) => {
+    const newCompleted = !currentCompleted;
+    const key = `${meetingId}-${taskIndex}`;
+
+    // 1. Optimistic UI update immediately
+    setTasks(prev =>
+      prev.map(t =>
+        (t.meetingId === meetingId && t.taskIndex === taskIndex)
+          ? { ...t, completed: newCompleted, status: newCompleted ? 'Completed' : 'Pending' }
           : t
       )
     );
+    setToggleError(null);
+    setSavingTask(key);
+
+    // 2. Persist to DB
+    try {
+      const token = await getToken();
+      await api.updateTask(meetingId, taskIndex, newCompleted, token, user.id);
+    } catch (err) {
+      // 3. Roll back optimistic update on failure
+      setTasks(prev =>
+        prev.map(t =>
+          (t.meetingId === meetingId && t.taskIndex === taskIndex)
+            ? { ...t, completed: currentCompleted, status: currentCompleted ? 'Completed' : 'Pending' }
+            : t
+        )
+      );
+      setToggleError("Failed to save task. Please check your connection and try again.");
+    } finally {
+      setSavingTask(null);
+    }
   };
 
   const pendingCount = tasks.filter(t => !t.completed && t.status !== 'Completed').length;
@@ -82,6 +107,14 @@ const Tasks = () => {
               <span className="text-white font-bold ml-1">{tasks.length}</span>
             </div>
           </div>
+
+          {/* Toggle error banner */}
+          {toggleError && (
+            <div className="mb-4 px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400 flex items-center justify-between">
+              <span>⚠️ {toggleError}</span>
+              <button onClick={() => setToggleError(null)} className="text-red-400/60 hover:text-red-400 ml-4 text-xs">Dismiss</button>
+            </div>
+          )}
 
           <div className="overflow-hidden rounded-2xl border border-[#1c1c1c] bg-[#080808]">
             <div className="overflow-x-auto">
@@ -136,10 +169,13 @@ const Tasks = () => {
                         >
                           <td className="px-6 py-5 text-center">
                             <button
-                              onClick={() => toggleTask(task.meetingId, task.title)}
-                              className="focus:outline-none transition-transform active:scale-90"
+                              onClick={() => toggleTask(task.meetingId, task.taskIndex, task.completed || task.status === 'Completed')}
+                              disabled={savingTask === `${task.meetingId}-${task.taskIndex}`}
+                              className="focus:outline-none transition-transform active:scale-90 disabled:opacity-50"
                             >
-                              {isCompleted ? (
+                              {savingTask === `${task.meetingId}-${task.taskIndex}` ? (
+                                <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+                              ) : isCompleted ? (
                                 <CheckCircle2 className="w-6 h-6 text-indigo-500" />
                               ) : (
                                 <Circle className="w-6 h-6 text-zinc-600 group-hover:text-indigo-400 transition-colors" />

@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut, SignIn, SignUp } from '@clerk/clerk-react';
 import Navbar from "./components/Navbar";
+import { NotificationProvider } from "./context/NotificationContext";
 
 // Pages (ALL start with capital letters)
 import Home from "./pages/Home";
@@ -28,6 +29,7 @@ const App = () => {
 
   return (
     <BrowserRouter>
+      <NotificationProvider>
       <Navbar />
 
       <Routes>
@@ -74,6 +76,7 @@ const App = () => {
         <Route path="/Tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
 
       </Routes>
+      </NotificationProvider>
     </BrowserRouter>
   );
 };

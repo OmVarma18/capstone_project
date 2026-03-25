@@ -6,7 +6,13 @@ import { cn } from "../lib/utils";
 const Profile = () => {
   const { user } = useUser();
   const [autoStart, setAutoStart] = useState(true);
-  const [lang, setLang] = useState("English (US)");
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem('talknote_default_language') || 'auto';
+    } catch {
+      return 'auto';
+    }
+  });
 
   // Local state for form
   const [fullName, setFullName] = useState(user?.fullName || "");
@@ -19,7 +25,7 @@ const Profile = () => {
         <header className="mb-12">
           <h1 className="text-4xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
             <Settings className="w-8 h-8 text-indigo-400" />
-            Account Settings
+            Profile & Settings
           </h1>
           <p className="text-zinc-500">Manage your profile, preferences, and integrations.</p>
         </header>
@@ -121,14 +127,19 @@ const Profile = () => {
                 </label>
                 <select
                   value={lang}
-                  onChange={(e) => setLang(e.target.value)}
+                  onChange={(e) => {
+                    setLang(e.target.value);
+                    localStorage.setItem('talknote_default_language', e.target.value);
+                  }}
                   className="w-full md:w-64 bg-[#111111] border border-[#1c1c1c] px-4 py-2.5 rounded-lg text-white focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all appearance-none cursor-pointer"
                 >
-                  <option>English (US)</option>
-                  <option>Spanish</option>
-                  <option>French</option>
-                  <option>German</option>
+                  <option value="auto">🌐 Auto-Detect</option>
+                  <option value="en">🇬🇧 English</option>
+                  <option value="hi">🇮🇳 Hindi</option>
+                  <option value="fr">🇫🇷 French</option>
+                  <option value="es">🇪🇸 Spanish</option>
                 </select>
+                <p className="text-xs text-zinc-600 mt-2">Applies to audio transcription only. Summary and tasks are always generated in English.</p>
               </div>
             </div>
           </section>
