@@ -187,7 +187,10 @@ def process_files():
             logger.info(f"Successfully processed and deleted {filename}")
             
         except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
+            logger.error(f"Error processing {filename}: {e}")
+            conn.rollback()
+            # Stop swallowing exceptions in GitHub processing to ensure Action legitimately fails
+            raise e
 
     conn.commit()
     cur.close()
