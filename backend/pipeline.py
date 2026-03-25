@@ -59,7 +59,22 @@ class TalkNotePipeline:
         self.memory_bank = {}
         
         # 1. Load Audio
-        audio, _ = librosa.load(file_path, sr=self.sample_rate, mono=True)
+        try:
+            audio, _ = librosa.load(file_path, sr=self.sample_rate, mono=True)
+        except Exception as e:
+            logger.warning(f"librosa native load failed for {file_path}. Falling back to ffmpeg conversion. Error: {e}")
+            import subprocess
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
+                tmp_wav_path = tmp_wav.name
+            try:
+                subprocess.run(['ffmpeg', '-y', '-i', file_path, '-ar', str(self.sample_rate), '-ac', '1', tmp_wav_path], 
+                               check=True, capture_output=True)
+                audio, _ = librosa.load(tmp_wav_path, sr=self.sample_rate, mono=True)
+            finally:
+                if os.path.exists(tmp_wav_path):
+                    os.remove(tmp_wav_path)
+            
         self.audio = audio
         
         # 2. Run ASR with faster-whisper
