@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut, SignIn, SignUp } from '@clerk/clerk-react';
 import Navbar from "./components/Navbar";
+import ExtensionAuthBridge from "./components/ExtensionAuthBridge";
 import { NotificationProvider } from "./context/NotificationContext";
 
 // Pages (ALL start with capital letters)
@@ -30,6 +31,7 @@ const App = () => {
   return (
     <BrowserRouter>
       <NotificationProvider>
+      <ExtensionAuthBridge />
       <Navbar />
 
       <Routes>
