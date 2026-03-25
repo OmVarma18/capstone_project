@@ -60,13 +60,14 @@ def generate_insights(transcript):
     try:
         prompt = f"""
         You are an intelligent meeting assistant. Analyze the following meeting transcript.
-        Return a beautiful, concise summary of the conversation, and extract an array of actionable tasks.
+        The transcript may be in any language, but you MUST always respond in English.
+        Return a beautiful, concise summary of the conversation in English, and extract an array of actionable tasks in English.
         
         Please format strictly as a JSON object matching this schema:
         {{
-            "summary": "a couple of sentences summarizing the main points",
+            "summary": "a couple of sentences summarizing the main points in English",
             "tasks": [
-                {{"title": "The actionable task based on the transcript", "status": "pending"}}
+                {{"title": "The actionable task based on the transcript, written in English", "status": "pending"}}
             ]
         }}
         
@@ -131,8 +132,26 @@ def process_files():
             filename = os.path.basename(file_path)
             logger.info(f"Processing: {filename}")
             
+            # Parse language from filename: userId___timestamp_lang_filename.ext
+            language = None
+            try:
+                # Split on '___' to get userId and the rest
+                parts = filename.split('___', 1)
+                if len(parts) == 2:
+                    # rest = "timestamp_lang_filename.ext"
+                    rest_parts = parts[1].split('_', 2)  # [timestamp, lang, filename.ext]
+                    if len(rest_parts) >= 2:
+                        lang_tag = rest_parts[1]
+                        if lang_tag != 'auto' and len(lang_tag) == 2:
+                            language = lang_tag
+                            logger.info(f"Language detected from filename: {language}")
+                        else:
+                            logger.info("Language: auto-detect")
+            except Exception as e:
+                logger.warning(f"Could not parse language from filename: {e}")
+            
             # 1. AI Processing
-            result = pipeline.process_file(file_path)
+            result = pipeline.process_file(file_path, language=language)
             
             # 2. Heuristic Summary & Tasks (Mocking for now)
             insights = generate_insights(result['transcript'])

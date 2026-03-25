@@ -1,10 +1,10 @@
-import whisper
+from faster_whisper import WhisperModel
 from speechbrain.pretrained import EncoderClassifier
 
 def download_models():
-    print("Downloading Whisper 'base' model...")
-    # This downloads to ~/.cache/whisper
-    whisper.load_model("base")
+    print("Downloading faster-whisper 'base' model...")
+    # This downloads the CTranslate2-converted model to ~/.cache/huggingface
+    WhisperModel("base", device="cpu", compute_type="int8")
     
     print("Downloading SpeechBrain Speaker Encoder...")
     # This downloads to ~/.cache/huggingface
