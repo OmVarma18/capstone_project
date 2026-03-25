@@ -137,9 +137,6 @@ def process_files():
     # Initialize Pipeline (Model loading might take time)
     pipeline = TalkNotePipeline()
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-
     for file_path in audio_files:
         try:
             filename = os.path.basename(file_path)
@@ -166,13 +163,16 @@ def process_files():
             # 1. AI Processing
             result = pipeline.process_file(file_path, language=language)
             
-            # 2. Heuristic Summary & Tasks (Mocking for now)
+            # 2. AI Insights (Summary & Tasks) via Gemini
             insights = generate_insights(result['transcript'])
             agenda_title = insights.get('title')
             summary = insights.get('summary', '')
             tasks = insights.get('tasks', [])
             
             # Use the AI title if valid, otherwise fallback to filename
+            user_id_parts = filename.split('___')
+            user_id = user_id_parts[0] if len(user_id_parts) > 1 else "unknown_user"
+            original_title = user_id_parts[1].split('_', 1)[1] if len(user_id_parts) > 1 else filename
             final_title = agenda_title if (agenda_title and len(agenda_title) > 3) else original_title
             
             # --- DEBUG LOGGING ---
@@ -183,21 +183,30 @@ def process_files():
             logger.info("===============================================")
             
             # 3. Save to Database
-            # Filename format from upload.js: userId___timestamp_filename.ext
-            user_id_parts = filename.split('___')
-            user_id = user_id_parts[0] if len(user_id_parts) > 1 else "unknown_user"
-            original_title = user_id_parts[1].split('_', 1)[1] if len(user_id_parts) > 1 else filename
-
-            cur.execute("""
-                INSERT INTO sessions (user_id, title, summary, transcript, tasks)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (
-                user_id,
-                final_title,
-                summary,
-                Json(result['transcript']),
-                Json(tasks)
-            ))
+            # We connect to the DB *here* instead of before the AI processing,
+            # because Neon DB closes idle connections if processing takes > 1 minute!
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            try:
+                cur.execute("""
+                    INSERT INTO sessions (user_id, title, summary, transcript, tasks)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (
+                    user_id,
+                    final_title,
+                    summary,
+                    Json(result['transcript']),
+                    Json(tasks)
+                ))
+                conn.commit()
+            except Exception as db_err:
+                conn.rollback()
+                logger.error(f"Database insertion error: {db_err}")
+                raise db_err
+            finally:
+                cur.close()
+                conn.close()
             
             # 4. Clean up original file
             os.remove(file_path)
@@ -205,13 +214,8 @@ def process_files():
             
         except Exception as e:
             logger.error(f"Error processing {filename}: {e}")
-            conn.rollback()
             # Stop swallowing exceptions in GitHub processing to ensure Action legitimately fails
             raise e
-
-    conn.commit()
-    cur.close()
-    conn.close()
 
 if __name__ == "__main__":
     # Ensure upload dir exists
