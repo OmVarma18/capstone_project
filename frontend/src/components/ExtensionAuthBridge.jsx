@@ -17,42 +17,28 @@ const ExtensionAuthBridge = () => {
   useEffect(() => {
     if (!isSignedIn || !user) return;
 
-    // Check if we're running inside a browser with the TalkNote extension
+    // Sync auth to the Chrome extension via postMessage.
+    // The extension's auth_bridge.js content script (injected into localhost:5173)
+    // listens for this message and writes to chrome.storage.local.
     const syncToExtension = async () => {
       try {
-        // Method 1: Use chrome.storage directly (works if extension has host_permissions for localhost)
-        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-          const token = await getToken();
-          chrome.storage.local.set({
-            userId: user.id,
-            userEmail: user.primaryEmailAddress?.emailAddress || '',
-            sessionToken: token
-          }, () => {
-            console.log('[TalkNote] Auth synced to extension storage');
-          });
-          return;
-        }
-
-        // Method 2: Use postMessage for cross-context communication
-        // The extension's background.js listens for external messages
-        if (typeof chrome !== 'undefined' && chrome.runtime) {
-          const token = await getToken();
-          // Try to send to the extension via externally_connectable
-          // This requires the extension ID, so we broadcast instead
-          window.postMessage({
-            type: 'TALKNOTE_AUTH_SYNC',
-            userId: user.id,
-            userEmail: user.primaryEmailAddress?.emailAddress || '',
-            sessionToken: token
-          }, '*');
-        }
+        const token = await getToken();
+        window.postMessage({
+          type: 'TALKNOTE_AUTH_SYNC',
+          userId: user.id,
+          userEmail: user.primaryEmailAddress?.emailAddress || '',
+          sessionToken: token
+        }, '*');
+        console.log('[TalkNote] Auth sync message posted for extension');
       } catch (err) {
-        // Silently fail — user might not have extension installed
         console.debug('[TalkNote] Extension sync skipped:', err.message);
       }
     };
 
+    // Sync immediately and also after a short delay (in case content script loads late)
     syncToExtension();
+    const retryTimeout = setTimeout(syncToExtension, 2000);
+    return () => clearTimeout(retryTimeout);
   }, [isSignedIn, user, getToken]);
 
   return null; // This component renders nothing
