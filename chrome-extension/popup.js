@@ -170,11 +170,10 @@ function setNoMeeting() {
 // ============ Recording ============
 
 async function checkRecordingState() {
-  // Check if background is already recording
-  chrome.runtime.sendMessage({ type: 'GET_STATE' }, (response) => {
-    if (chrome.runtime.lastError || !response) return;
-    if (response.isRecording) {
-      recordingSeconds = response.elapsed || 0;
+  // Check chrome.storage for recording state (survives popup close/reopen)
+  chrome.storage.local.get(['isRecording', 'recordingStartTime'], (data) => {
+    if (data.isRecording && data.recordingStartTime) {
+      recordingSeconds = Math.floor((Date.now() - data.recordingStartTime) / 1000);
       showState('recording');
       startTimer();
     }
@@ -208,10 +207,23 @@ btnStartRecord.addEventListener('click', async () => {
 
 let mediaRecorder = null;
 let audioChunks = [];
+let audioContext = null;
 
 function startRecordingWithStream(stream, auth) {
   audioChunks = [];
   
+  // ====== BUG #1 FIX: Pipe captured audio back to speakers ======
+  // tabCapture.capture() steals the audio from the tab, making it silent.
+  // We create an AudioContext that routes the captured stream back into
+  // the user's speakers so they can still hear the meeting.
+  try {
+    audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(audioContext.destination);
+  } catch (e) {
+    console.warn('Could not create audio playback:', e);
+  }
+
   mediaRecorder = new MediaRecorder(stream, {
     mimeType: 'audio/webm;codecs=opus'
   });
@@ -223,8 +235,12 @@ function startRecordingWithStream(stream, auth) {
   };
 
   mediaRecorder.onstop = async () => {
-    // Stop all tracks
+    // Stop all tracks and close audio context
     stream.getTracks().forEach(track => track.stop());
+    if (audioContext) {
+      audioContext.close().catch(() => {});
+      audioContext = null;
+    }
     
     // Combine chunks into a single blob
     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
@@ -232,6 +248,9 @@ function startRecordingWithStream(stream, auth) {
     
     showState('uploading');
     stopTimer();
+
+    // Clear recording state from storage
+    chrome.storage.local.remove(['isRecording', 'recordingStartTime']);
 
     try {
       await uploadAudio(audioBlob, auth);
@@ -247,6 +266,12 @@ function startRecordingWithStream(stream, auth) {
   showState('recording');
   startTimer();
 
+  // Save recording state so we can detect zombie sessions
+  chrome.storage.local.set({
+    isRecording: true,
+    recordingStartTime: Date.now()
+  });
+
   // Notify background about the recording state
   chrome.runtime.sendMessage({ type: 'RECORDING_STARTED' });
 }
@@ -255,6 +280,14 @@ btnStopRecord.addEventListener('click', () => {
   if (mediaRecorder && mediaRecorder.state === 'recording') {
     mediaRecorder.stop();
     chrome.runtime.sendMessage({ type: 'RECORDING_STOPPED' });
+  } else {
+    // ====== BUG #3 FIX: Clean up zombie recording state ======
+    // If the popup was reopened but mediaRecorder is gone (popup context died),
+    // just reset everything so the user can start fresh.
+    chrome.storage.local.remove(['isRecording', 'recordingStartTime']);
+    chrome.runtime.sendMessage({ type: 'RECORDING_STOPPED' });
+    showState('idle');
+    stopTimer();
   }
 });
 
