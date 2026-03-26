@@ -3,7 +3,7 @@ import torch
 import logging
 import numpy as np
 import librosa
-import whisper
+from faster_whisper import WhisperModel
 from speechbrain.pretrained import EncoderClassifier
 from sklearn.cluster import SpectralClustering
 from sklearn.metrics import silhouette_score
@@ -13,7 +13,7 @@ from collections import defaultdict
 logger = logging.getLogger(__name__)
 
 SAMPLE_RATE = 16000
-DEVICE = "cpu" # Force CPU for compatibility, change to "cuda" if GPU is available
+DEVICE = "cpu"  # Force CPU for compatibility, change to "cuda" if GPU is available
 
 class TalkNotePipeline:
     def __init__(self, session_id: str = "temp_session"):
@@ -21,11 +21,10 @@ class TalkNotePipeline:
         self.session_id = session_id
         self.sample_rate = SAMPLE_RATE
         
-        # Load models (Lazily or Global for performance in prod)
-        # For this implementation, we load them here. 
-        # In production, move these outside the class to load only once.
-        logger.info("Loading Whisper...")
-        self.asr_model = whisper.load_model("base", device=DEVICE)
+        # Load faster-whisper model with int8 quantization for speed
+        # Uses CTranslate2 backend — ~4x faster than openai-whisper on CPU
+        logger.info("Loading Whisper (faster-whisper)...")
+        self.asr_model = WhisperModel("base", device="cpu", compute_type="int8")
         
         logger.info("Loading Speaker Encoder...")
         self.embedder = EncoderClassifier.from_hparams(
@@ -41,8 +40,14 @@ class TalkNotePipeline:
         self.final_transcript = []
         self.memory_bank = {}
         
-    def process_file(self, file_path: str):
-        """Main entry point to process a full audio file."""
+    def process_file(self, file_path: str, language: str = None):
+        """Main entry point to process a full audio file.
+        
+        Args:
+            file_path: Path to the audio file.
+            language: Optional language code (e.g. 'en', 'hi', 'es'). 
+                      If None, Whisper auto-detects the language.
+        """
         logger.info(f"Processing file: {file_path}")
         
         # Reset session state for each file to prevent duplication
@@ -54,16 +59,50 @@ class TalkNotePipeline:
         self.memory_bank = {}
         
         # 1. Load Audio
-        audio, _ = librosa.load(file_path, sr=self.sample_rate, mono=True)
+        try:
+            audio, _ = librosa.load(file_path, sr=self.sample_rate, mono=True)
+        except Exception as e:
+            logger.warning(f"librosa native load failed for {file_path}. Falling back to ffmpeg conversion. Error: {e}")
+            import subprocess
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
+                tmp_wav_path = tmp_wav.name
+            try:
+                subprocess.run(['ffmpeg', '-y', '-i', file_path, '-ar', str(self.sample_rate), '-ac', '1', tmp_wav_path], 
+                               check=True, capture_output=True)
+                audio, _ = librosa.load(tmp_wav_path, sr=self.sample_rate, mono=True)
+            finally:
+                if os.path.exists(tmp_wav_path):
+                    os.remove(tmp_wav_path)
+            
         self.audio = audio
         
-        # 2. Run ASR
-        logger.info("Running ASR...")
-        result = self.asr_model.transcribe(self.audio, verbose=False)
-        self.asr_segments = result.get("segments", [])
+        # 2. Run ASR with faster-whisper
+        logger.info(f"Running ASR (language={'auto-detect' if language is None else language})...")
+        segments_generator, info = self.asr_model.transcribe(
+            self.audio, 
+            language=language,
+            beam_size=5,
+            vad_filter=True,          # Skip silence — big speedup for meetings with pauses
+            vad_parameters=dict(
+                min_silence_duration_ms=500,  # Treat 500ms+ silence as a gap
+            )
+        )
         
-        # 3. Extract Embeddings (simplified block processing)
-        logger.info("Extracting Embeddings...")
+        # Collect segments from the generator into a list
+        # faster-whisper returns segment objects, convert to dicts for compatibility
+        self.asr_segments = []
+        for seg in segments_generator:
+            self.asr_segments.append({
+                "start": seg.start,
+                "end": seg.end,
+                "text": seg.text.strip()
+            })
+        
+        logger.info(f"ASR complete: {len(self.asr_segments)} segments, detected language: {info.language} ({info.language_probability:.1%})")
+        
+        # 3. Extract Embeddings — OPTIMIZED: only at segment boundaries
+        logger.info("Extracting Speaker Embeddings (segment-level)...")
         self._extract_embeddings()
         
         # 4. Diarization (Clustering)
@@ -81,16 +120,34 @@ class TalkNotePipeline:
         }
 
     def _extract_embeddings(self):
-        # Simplified sliding window
-        window_len = int(self.sample_rate * 1.5) # 1.5s window
-        stride = int(self.sample_rate * 0.75)    # 0.75s stride
+        """OPTIMIZED: Extract one speaker embedding per ASR segment.
+        
+        Instead of sliding a window across the entire audio (old approach),
+        we extract embeddings only for the time ranges Whisper identified as speech.
+        
+        Old approach: 30 min audio → ~2,400 embedding calls (1.5s window, 0.75s stride)
+        New approach: 30 min audio → ~200-300 embedding calls (one per segment)
+        
+        This is 10-20x fewer neural net calls AND more accurate, because each
+        embedding covers exactly one speech utterance.
+        """
+        MIN_SEGMENT_SAMPLES = int(self.sample_rate * 0.5)  # Min 0.5s for reliable embedding
         
         audio_tensor = torch.from_numpy(self.audio).to(DEVICE)
         
-        for start in range(0, max(1, len(self.audio) - window_len), stride):
-            window = audio_tensor[start:start+window_len]
-            # Ensure correct shape for speechbrain [batch, time]
-            if len(window) < window_len: continue
+        for seg in self.asr_segments:
+            start_sample = int(seg["start"] * self.sample_rate)
+            end_sample = int(seg["end"] * self.sample_rate)
+            
+            # Skip very short segments (less than 0.5s) — embeddings would be unreliable
+            if (end_sample - start_sample) < MIN_SEGMENT_SAMPLES:
+                continue
+            
+            # Clamp to audio boundaries
+            start_sample = max(0, start_sample)
+            end_sample = min(len(self.audio), end_sample)
+            
+            window = audio_tensor[start_sample:end_sample]
             
             with torch.no_grad():
                 # SpeechBrain expects [batch, time]
@@ -98,9 +155,10 @@ class TalkNotePipeline:
                 emb = emb.squeeze(0).squeeze(0).cpu().numpy()
                 
             self.embeddings.append({
-                "start": start / self.sample_rate,
-                "end": (start + window_len) / self.sample_rate,
-                "embedding": emb
+                "start": seg["start"],
+                "end": seg["end"],
+                "embedding": emb,
+                "segment_index": len(self.embeddings)  # Track which segment this came from
             })
 
     def _cluster_speakers(self):
@@ -112,10 +170,19 @@ class TalkNotePipeline:
         n_speakers = self._estimate_num_speakers(X)
         logger.info(f"Estimated speakers: {n_speakers}")
         
+        # Default to rbf for very small audio clips (like 30-sec tests)
+        # nearest_neighbors creates a sparse matrix which fails if n_clusters >= n_samples
+        if len(X) < max(4, n_speakers + 1):
+            affinity = 'rbf'
+            n_neighbors = 10  # ignored for rbf
+        else:
+            affinity = 'nearest_neighbors'
+            n_neighbors = min(10, len(X) - 1)
+            
         clusterer = SpectralClustering(
             n_clusters=n_speakers,
-            affinity="nearest_neighbors",
-            assign_labels="kmeans",
+            affinity=affinity,
+            n_neighbors=n_neighbors,
             random_state=42
         )
         labels = clusterer.fit_predict(X)
@@ -129,52 +196,61 @@ class TalkNotePipeline:
                 self.memory_bank[spk] = self.embeddings[i]["embedding"]
 
     def _estimate_num_speakers(self, X, k_min=2, k_max=5):
-        if len(X) < k_max: return 2
+        # silhouette_score requires 2 <= n_labels <= n_samples - 1
+        safe_k_max = min(k_max, len(X) - 1)
+        
+        if safe_k_max < k_min:
+            return 1 if len(X) == 1 else 2
+            
         best_k = 2
         best_score = -1
         
-        for k in range(k_min, k_max + 1):
-            clusterer = SpectralClustering(n_clusters=k, random_state=42)
-            labels = clusterer.fit_predict(X)
-            score = silhouette_score(X, labels)
-            if score > best_score:
-                best_score = score
-                best_k = k
+        for k in range(k_min, safe_k_max + 1):
+            try:
+                clusterer = SpectralClustering(n_clusters=k, random_state=42, affinity='nearest_neighbors' if len(X) > 4 else 'rbf')
+                labels = clusterer.fit_predict(X)
+                # Ensure we actually got k clusters back, sometimes spectral clustering returns fewer
+                if len(set(labels)) > 1 and len(set(labels)) < len(X):
+                    score = silhouette_score(X, labels)
+                    if score > best_score:
+                        best_score = score
+                        best_k = k
+            except Exception:
+                continue
+                
         return best_k
 
     def _align_segments(self):
+        """Assign each ASR segment a speaker label from the closest embedding.
+        
+        Since embeddings now map 1-to-1 with ASR segments (same time boundaries),
+        this is much simpler and more accurate than the old approach.
+        """
         for seg in self.asr_segments:
-            # Find closest speaker embedding in time
-            seg_mid = (seg["start"] + seg["end"]) / 2
-            
-            # Get embeddings that overlap with this segment
-            # Simplified: just find nearest embedding in time
-             # Or better: average embedding of the segment window
-            
             best_spk = "UNKNOWN"
-            best_sim = -1
             
-            # Simple matching: find speaker with highest cosine sim in overlap
-            # (Skipping complex overlap logic for MVP, assuming closest embedding)
+            # Find the embedding whose time range best matches this segment
+            # With our new approach, there should be a direct match or very close one
+            best_emb = None
+            best_overlap = 0
             
-            # Find embeddings within segment timeframe
-            relevant_embs = [
-                e for e in self.embeddings 
-                if e["start"] >= seg["start"] and e["end"] <= seg["end"]
-            ]
+            for emb in self.embeddings:
+                # Calculate temporal overlap
+                overlap_start = max(seg["start"], emb["start"])
+                overlap_end = min(seg["end"], emb["end"])
+                overlap = max(0, overlap_end - overlap_start)
+                
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_emb = emb
             
-            if relevant_embs:
-                # Majority vote or average
-                counts = defaultdict(int)
-                for e in relevant_embs:
-                    counts[e["cluster"]] += 1
-                top_cluster = max(counts, key=counts.get)
-                best_spk = f"SPEAKER_{top_cluster}"
-            else:
-                 # Fallback: nearest temporal embedding
-                 if self.embeddings:
-                     nearest = min(self.embeddings, key=lambda e: abs(e["start"] - seg["start"]))
-                     best_spk = f"SPEAKER_{nearest['cluster']}"
+            if best_emb and "cluster" in best_emb:
+                best_spk = f"SPEAKER_{best_emb['cluster']}"
+            elif self.embeddings:
+                # Fallback: nearest temporal embedding
+                nearest = min(self.embeddings, key=lambda e: abs(e["start"] - seg["start"]))
+                if "cluster" in nearest:
+                    best_spk = f"SPEAKER_{nearest['cluster']}"
 
             self.aligned_segments.append({
                 "start": seg["start"],
@@ -187,7 +263,7 @@ class TalkNotePipeline:
         if not self.aligned_segments: return
         
         merged = []
-        current = self.aligned_segments[0]
+        current = self.aligned_segments[0].copy()
         
         for next_seg in self.aligned_segments[1:]:
             if next_seg["speaker"] == current["speaker"] and (next_seg["start"] - current["end"] < 2.0):
@@ -195,6 +271,6 @@ class TalkNotePipeline:
                 current["text"] += " " + next_seg["text"]
             else:
                 merged.append(current)
-                current = next_seg
+                current = next_seg.copy()
         merged.append(current)
         self.final_transcript = merged

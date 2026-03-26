@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { filename, fileData, userId } = req.body;
+        const { filename, fileData, userId, language } = req.body;
 
         if (!filename || !fileData || !userId) {
             return res.status(400).json({ error: "Missing required fields" });
@@ -39,7 +39,8 @@ export default async function handler(req, res) {
 
         const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
         const timestamp = Date.now();
-        const finalFilename = `${userId}___${timestamp}_${safeFilename}`;
+        const langTag = language || 'auto';
+        const finalFilename = `${userId}___${timestamp}_${langTag}_${safeFilename}`;
         const filePath = `uploads/${finalFilename}`;
 
         console.log(`📡 Pushing ${finalFilename} to GitHub to trigger Actions...`);

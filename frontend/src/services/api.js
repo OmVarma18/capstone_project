@@ -16,7 +16,7 @@ export const api = {
      * @param {string} token - The Clerk session token
      * @param {string} userId - The Clerk user ID
      */
-    uploadAudio: async (file, token, userId) => {
+    uploadAudio: async (file, token, userId, language = null) => {
         // Convert file to base64 for the serverless function to easily pass to GitHub API
         const toBase64 = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -31,7 +31,8 @@ export const api = {
             const response = await axios.post(`${API_URL}/upload`, {
                 filename: file.name,
                 fileData: base64Data,
-                userId: userId
+                userId: userId,
+                language: language
             }, {
                 headers: {
                     "Content-Type": "application/json",
@@ -103,6 +104,31 @@ export const api = {
             }
         } catch (error) {
             console.error("API Delete Error:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Persists a task's completed/status to the DB.
+     * @param {number} sessionId - The session the task belongs to
+     * @param {number} taskIndex - Index of the task in the session's tasks array
+     * @param {boolean} completed - New completed state
+     */
+    updateTask: async (sessionId, taskIndex, completed, token, userId) => {
+        try {
+            await axios.patch(`${API_URL}/sessions`,
+                { sessionId, taskIndex, completed },
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "x-user-id": userId
+                    }
+                }
+            );
+            // Invalidate cache so next fetch is fresh
+            sessionCache.data = null;
+        } catch (error) {
+            console.error("API Task Update Error:", error);
             throw error;
         }
     }

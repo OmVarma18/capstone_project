@@ -60,13 +60,23 @@ def generate_insights(transcript):
     try:
         prompt = f"""
         You are an intelligent meeting assistant. Analyze the following meeting transcript.
-        Return a beautiful, concise summary of the conversation, and extract an array of actionable tasks.
+        The transcript may be in any language, but you MUST always respond in English.
+        Return a beautiful, concise summary of the conversation in English, and extract an array of actionable tasks in English.
+        Also, generate a short, professional title for the meeting based on the agenda discussed.
+        
+        For each task, determine the assignee (if mentioned, otherwise 'Unassigned') and the due date (if mentioned, otherwise 'N/A').
         
         Please format strictly as a JSON object matching this schema:
         {{
-            "summary": "a couple of sentences summarizing the main points",
+            "title": "A short, descriptive title based on the agenda",
+            "summary": "a couple of sentences summarizing the main points in English",
             "tasks": [
-                {{"title": "The actionable task based on the transcript", "status": "pending"}}
+                {{
+                    "title": "The actionable task based on the transcript, written in English",
+                    "status": "pending",
+                    "assignee": "Person's name or Unassigned",
+                    "due_date": "Date/Day or N/A"
+                }}
             ]
         }}
         
@@ -88,7 +98,11 @@ def generate_insights(transcript):
             
         # Parse the JSON response
         data = json.loads(raw_text)
-        return {"summary": data.get("summary", ""), "tasks": data.get("tasks", [])}
+        return {
+            "title": data.get("title", ""),
+            "summary": data.get("summary", ""),
+            "tasks": data.get("tasks", [])
+        }
         
     except Exception as e:
         logger.error(f"Error calling Gemini AI: {e}")
@@ -111,7 +125,7 @@ def process_files():
     # create_table_if_not_exists()
     
     audio_files = []
-    for ext in ['*.mp3', '*.wav', '*.m4a', '*.ogg', '*.m4p', '*.mp4']:
+    for ext in ['*.mp3', '*.wav', '*.m4a', '*.ogg', '*.m4p', '*.mp4', '*.webm', '*.weba']:
         audio_files.extend(glob.glob(os.path.join(UPLOAD_DIR, ext)))
 
     if not audio_files:
@@ -123,21 +137,43 @@ def process_files():
     # Initialize Pipeline (Model loading might take time)
     pipeline = TalkNotePipeline()
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-
     for file_path in audio_files:
         try:
             filename = os.path.basename(file_path)
             logger.info(f"Processing: {filename}")
             
-            # 1. AI Processing
-            result = pipeline.process_file(file_path)
+            # Parse language from filename: userId___timestamp_lang_filename.ext
+            language = None
+            try:
+                # Split on '___' to get userId and the rest
+                parts = filename.split('___', 1)
+                if len(parts) == 2:
+                    # rest = "timestamp_lang_filename.ext"
+                    rest_parts = parts[1].split('_', 2)  # [timestamp, lang, filename.ext]
+                    if len(rest_parts) >= 2:
+                        lang_tag = rest_parts[1]
+                        if lang_tag != 'auto' and len(lang_tag) == 2:
+                            language = lang_tag
+                            logger.info(f"Language detected from filename: {language}")
+                        else:
+                            logger.info("Language: auto-detect")
+            except Exception as e:
+                logger.warning(f"Could not parse language from filename: {e}")
             
-            # 2. Heuristic Summary & Tasks (Mocking for now)
+            # 1. AI Processing
+            result = pipeline.process_file(file_path, language=language)
+            
+            # 2. AI Insights (Summary & Tasks) via Gemini
             insights = generate_insights(result['transcript'])
-            summary = insights['summary']
-            tasks = insights['tasks']
+            agenda_title = insights.get('title')
+            summary = insights.get('summary', '')
+            tasks = insights.get('tasks', [])
+            
+            # Use the AI title if valid, otherwise fallback to filename
+            user_id_parts = filename.split('___')
+            user_id = user_id_parts[0] if len(user_id_parts) > 1 else "unknown_user"
+            original_title = user_id_parts[1].split('_', 1)[1] if len(user_id_parts) > 1 else filename
+            final_title = agenda_title if (agenda_title and len(agenda_title) > 3) else original_title
             
             # --- DEBUG LOGGING ---
             logger.info("============== TRANSCRIPT RESULT ==============")
@@ -147,32 +183,39 @@ def process_files():
             logger.info("===============================================")
             
             # 3. Save to Database
-            # Filename format from upload.js: userId___timestamp_filename.ext
-            user_id_parts = filename.split('___')
-            user_id = user_id_parts[0] if len(user_id_parts) > 1 else "unknown_user"
-            original_title = user_id_parts[1].split('_', 1)[1] if len(user_id_parts) > 1 else filename
-
-            cur.execute("""
-                INSERT INTO sessions (user_id, title, summary, transcript, tasks)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (
-                user_id,
-                original_title,
-                summary,
-                Json(result['transcript']),
-                Json(tasks)
-            ))
+            # We connect to the DB *here* instead of before the AI processing,
+            # because Neon DB closes idle connections if processing takes > 1 minute!
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            try:
+                cur.execute("""
+                    INSERT INTO sessions (user_id, title, summary, transcript, tasks)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (
+                    user_id,
+                    final_title,
+                    summary,
+                    Json(result['transcript']),
+                    Json(tasks)
+                ))
+                conn.commit()
+            except Exception as db_err:
+                conn.rollback()
+                logger.error(f"Database insertion error: {db_err}")
+                raise db_err
+            finally:
+                cur.close()
+                conn.close()
             
             # 4. Clean up original file
             os.remove(file_path)
             logger.info(f"Successfully processed and deleted {filename}")
             
         except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
-
-    conn.commit()
-    cur.close()
-    conn.close()
+            logger.error(f"Error processing {filename}: {e}")
+            # Stop swallowing exceptions in GitHub processing to ensure Action legitimately fails
+            raise e
 
 if __name__ == "__main__":
     # Ensure upload dir exists

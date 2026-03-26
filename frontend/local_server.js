@@ -18,12 +18,12 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false },
 });
 
-const REPO_OWNER = 'OmVarma18';
-const REPO_NAME = 'capstone_project';
+const REPO_OWNER = 'isayushgupta';
+const REPO_NAME = 'TalkNote';
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, x-user-id",
     "Content-Type": "application/json",
 };
@@ -50,7 +50,7 @@ serve({
         if (url.pathname === "/api/upload" && req.method === "POST") {
             try {
                 const body = await req.json();
-                const { filename, fileData, userId } = body;
+                const { filename, fileData, userId, language } = body;
 
                 if (!filename || !fileData || !userId) {
                     return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: corsHeaders });
@@ -58,7 +58,8 @@ serve({
 
                 const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
                 const timestamp = Date.now();
-                const finalFilename = `${userId}___${timestamp}_${safeFilename}`;
+                const langTag = language || 'auto';
+                const finalFilename = `${userId}___${timestamp}_${langTag}_${safeFilename}`;
                 const filePath = `uploads/${finalFilename}`;
 
                 console.log(`📡 Pushing ${finalFilename} to GitHub to trigger Actions...`);
@@ -144,6 +145,46 @@ serve({
             } catch (error) {
                 console.error("Database Delete Error:", error);
                 return new Response(JSON.stringify({ error: 'Failed to delete session' }), { status: 500, headers: corsHeaders });
+            }
+        }
+
+        // --- SESSIONS PATCH ROUTE (task toggle persistence) ---
+        if (url.pathname === "/api/sessions" && req.method === "PATCH") {
+            try {
+                const { sessionId, taskIndex, completed } = await req.json();
+                const userId = req.headers.get("x-user-id");
+
+                if (!sessionId || taskIndex === undefined || completed === undefined || !userId) {
+                    return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: corsHeaders });
+                }
+
+                const newStatus = completed ? 'Completed' : 'Pending';
+
+                // Update the specific task in the JSONB array by index
+                const result = await pool.query(
+                    `UPDATE sessions
+                     SET tasks = jsonb_set(
+                         jsonb_set(tasks, $1, $2::jsonb),
+                         $3, $4::jsonb
+                     )
+                     WHERE id = $5 AND user_id = $6
+                     RETURNING id`,
+                    [
+                        `{${taskIndex},completed}`, JSON.stringify(completed),
+                        `{${taskIndex},status}`,    JSON.stringify(newStatus),
+                        sessionId, userId
+                    ]
+                );
+
+                if (result.rowCount === 0) {
+                    return new Response(JSON.stringify({ error: "Session not found or forbidden" }), { status: 404, headers: corsHeaders });
+                }
+
+                console.log(`✅ Task ${taskIndex} in session ${sessionId} set to ${newStatus}`);
+                return new Response(JSON.stringify({ message: "Task updated successfully" }), { headers: corsHeaders });
+            } catch (error) {
+                console.error("Task Update Error:", error);
+                return new Response(JSON.stringify({ error: 'Failed to update task' }), { status: 500, headers: corsHeaders });
             }
         }
 

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=400, initial-scale=1.0" />
+  <title>TalkNote</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- ============ SIGNED-OUT VIEW ============ -->
+  <div id="auth-view" class="view">
+    <div class="logo-section">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" x2="12" y1="19" y2="22"/>
+        </svg>
+      </div>
+      <h1 class="logo-title">TalkNote</h1>
+      <p class="logo-subtitle">AI-powered meeting notes</p>
+    </div>
+    <button id="btn-sign-in" class="btn btn-primary btn-full">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+      Sign in to TalkNote
+    </button>
+    <p class="hint">Sign in with your existing TalkNote account</p>
+  </div>
+
+  <!-- ============ MAIN APP VIEW ============ -->
+  <div id="app-view" class="view hidden">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="header-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" x2="12" y1="19" y2="22"/>
+          </svg>
+        </div>
+        <span class="header-title">TalkNote</span>
+      </div>
+      <div class="header-right">
+        <span id="user-email" class="user-email"></span>
+        <button id="btn-sign-out" class="btn btn-ghost btn-sm" title="Sign out">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Meeting Detection Banner -->
+    <div id="meeting-banner" class="meeting-banner">
+      <div class="meeting-dot"></div>
+      <span id="meeting-status-text">Checking for meetings...</span>
+    </div>
+
+    <!-- Recording Panel -->
+    <div class="record-panel">
+      <!-- Idle State -->
+      <div id="state-idle" class="state">
+        <div class="record-circle" id="btn-start-record">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="8"/>
+          </svg>
+        </div>
+        <p class="state-label">Tap to start recording</p>
+        <p class="state-hint">Captures audio from this tab</p>
+      </div>
+
+      <!-- Recording State -->
+      <div id="state-recording" class="state hidden">
+        <div class="record-circle recording" id="btn-stop-record">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12" rx="2"/>
+          </svg>
+        </div>
+        <div class="recording-info">
+          <div class="recording-pulse"></div>
+          <span id="recording-timer" class="recording-timer">0:00</span>
+        </div>
+        <p class="state-label recording-label">Recording in progress...</p>
+      </div>
+
+      <!-- Uploading State -->
+      <div id="state-uploading" class="state hidden">
+        <div class="spinner"></div>
+        <p class="state-label">Uploading & sending to AI pipeline...</p>
+        <p class="state-hint">This may take a moment</p>
+      </div>
+
+      <!-- Done State -->
+      <div id="state-done" class="state hidden">
+        <div class="done-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <p class="state-label">Upload complete!</p>
+        <p class="state-hint">Check your TalkNote dashboard for results</p>
+        <button id="btn-open-dashboard" class="btn btn-secondary btn-sm" style="margin-top:12px">
+          Open Dashboard
+        </button>
+      </div>
+
+      <!-- Error State -->
+      <div id="state-error" class="state hidden">
+        <p class="state-label error-label" id="error-message">Something went wrong</p>
+        <button id="btn-retry" class="btn btn-secondary btn-sm" style="margin-top:8px">Try Again</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <a id="link-dashboard" class="footer-link" href="#" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a id="link-history" class="footer-link" href="#" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+        History
+      </a>
+      <a id="link-tasks" class="footer-link" href="#" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 11-3 3L3 11"/><path d="M3 14V7a2 2 0 0 1 2-2h4"/><path d="m15 13 3-3 3 3"/><path d="M21 10v7a2 2 0 0 1-2 2h-4"/></svg>
+        Tasks
+      </a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

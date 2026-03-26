@@ -9,7 +9,7 @@ class TalkNotePipeline:
         logger.info(f"Initializing Mock Pipeline for session {session_id}")
         self.session_id = session_id
 
-    def process_file(self, file_path: str):
+    def process_file(self, file_path: str, language: str = None):
         """Mock processing that returns fake data."""
         logger.info(f"Processing file: {file_path}")
         time.sleep(2) # Simulate processing delay
