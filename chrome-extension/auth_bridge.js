@@ -1,7 +1,7 @@
 /**
  * TalkNote Chrome Extension – Web App Auth Bridge Content Script
  * 
- * Injected into the TalkNote web app (localhost:5173).
+ * Injected into the TalkNote web app (https://capstone-project-delta-nine.vercel.app).
  * Listens for postMessage from ExtensionAuthBridge.jsx and
  * forwards the auth credentials to chrome.storage.local.
  */

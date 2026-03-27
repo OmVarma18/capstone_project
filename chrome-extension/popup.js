@@ -8,8 +8,8 @@
  * - Audio upload to local_server.js
  */
 
-const API_URL = 'http://localhost:3001/api';
-const WEB_APP_URL = 'http://localhost:5173';
+const API_URL = 'https://capstone-project-delta-nine.vercel.app/api';
+const WEB_APP_URL = 'https://capstone-project-delta-nine.vercel.app';
 
 // ============ DOM References ============
 const authView = document.getElementById('auth-view');

@@ -18,7 +18,7 @@ const ExtensionAuthBridge = () => {
     if (!isSignedIn || !user) return;
 
     // Sync auth to the Chrome extension via postMessage.
-    // The extension's auth_bridge.js content script (injected into localhost:5173)
+    // The extension's auth_bridge.js content script (injected into https://capstone-project-delta-nine.vercel.app)
     // listens for this message and writes to chrome.storage.local.
     const syncToExtension = async () => {
       try {
